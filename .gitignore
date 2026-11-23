@@ -1,0 +1,41 @@
+# ---------------------------------------------------------------
+# PRIVACY: never commit patient-level data, credentials or exports
+# ---------------------------------------------------------------
+data/raw/
+data/full/
+data/interim/
+*.csv
+*.csv.gz
+*.parquet
+*.feather
+*.pbix
+!dbt_project/seeds/*.csv
+!tests/fixtures/*.csv
+
+# Power BI exports are generated locally (patient-level grain)
+powerbi/datasets/*
+!powerbi/datasets/README.md
+
+# Query result snapshots may contain small cells; regenerate locally
+reports/sql_results/
+
+# Credentials
+.env
+*.json.key
+gcp-service-account*.json
+dbt_project/profiles.local.yml
+
+# Local runtime
+.venv/
+.pgdata/
+logs/
+*.log
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+dbt_project/target/
+dbt_project/dbt_packages/
+dbt_project/logs/
+.DS_Store
+.ipynb_checkpoints/

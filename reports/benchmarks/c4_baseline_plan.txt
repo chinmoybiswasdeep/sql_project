@@ -1,0 +1,42 @@
+Seq Scan on icustays i  (cost=0.00..13347706.25 rows=140 width=44) (actual time=99.578..13500.491 rows=140 loops=1)
+  Buffers: shared hit=6324503
+  SubPlan 1
+    ->  Aggregate  (cost=19068.18..19068.19 rows=1 width=8) (actual time=19.286..19.286 rows=1 loops=140)
+          Buffers: shared hit=1264900
+          ->  Seq Scan on chartevents c  (cost=0.00..19067.93 rows=99 width=0) (actual time=8.941..19.282 rows=99 loops=140)
+                Filter: ((stay_id = i.stay_id) AND (itemid = 220045))
+                Rows Removed by Filter: 668763
+                Buffers: shared hit=1264900
+  SubPlan 2
+    ->  Aggregate  (cost=19068.07..19068.08 rows=1 width=8) (actual time=19.269..19.269 rows=1 loops=140)
+          Buffers: shared hit=1264900
+          ->  Seq Scan on chartevents c_1  (cost=0.00..19067.93 rows=57 width=0) (actual time=9.000..19.267 rows=60 loops=140)
+                Filter: ((stay_id = i.stay_id) AND (itemid = 220179))
+                Rows Removed by Filter: 668802
+                Buffers: shared hit=1264900
+  SubPlan 3
+    ->  Aggregate  (cost=19068.09..19068.10 rows=1 width=8) (actual time=19.292..19.292 rows=1 loops=140)
+          Buffers: shared hit=1264900
+          ->  Seq Scan on chartevents c_2  (cost=0.00..19067.93 rows=63 width=0) (actual time=9.016..19.289 rows=60 loops=140)
+                Filter: ((stay_id = i.stay_id) AND (itemid = 220180))
+                Rows Removed by Filter: 668802
+                Buffers: shared hit=1264900
+  SubPlan 4
+    ->  Aggregate  (cost=19068.17..19068.18 rows=1 width=8) (actual time=19.295..19.295 rows=1 loops=140)
+          Buffers: shared hit=1264900
+          ->  Seq Scan on chartevents c_3  (cost=0.00..19067.93 rows=97 width=0) (actual time=8.948..19.292 rows=99 loops=140)
+                Filter: ((stay_id = i.stay_id) AND (itemid = 220210))
+                Rows Removed by Filter: 668763
+                Buffers: shared hit=1264900
+  SubPlan 5
+    ->  Aggregate  (cost=19068.17..19068.18 rows=1 width=8) (actual time=19.288..19.288 rows=1 loops=140)
+          Buffers: shared hit=1264900
+          ->  Seq Scan on chartevents c_4  (cost=0.00..19067.93 rows=95 width=0) (actual time=8.938..19.284 rows=97 loops=140)
+                Filter: ((stay_id = i.stay_id) AND (itemid = 220277))
+                Rows Removed by Filter: 668765
+                Buffers: shared hit=1264900
+Settings: work_mem = '64MB'
+Planning:
+  Buffers: shared hit=8
+Planning Time: 0.064 ms
+Execution Time: 13500.524 ms

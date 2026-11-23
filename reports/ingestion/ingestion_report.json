@@ -1,0 +1,584 @@
+{
+  "run_id": 5,
+  "dataset": "mimic-iv-demo-2.2",
+  "mode": "demo",
+  "status": "succeeded",
+  "generated_at": "2026-11-23 03:40 UTC",
+  "tables": [
+    {
+      "table": "patients",
+      "source_file": "hosp/patients.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "59dcc6cd8450ddf03ad32cc7d76e41caa4c9633541715987f590c74835cf6fae",
+      "contract_hash": "3b702d3cf3a2a3b2",
+      "source_rows": 0,
+      "loaded_rows": 100,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.0008362919907085598,
+      "error_message": null
+    },
+    {
+      "table": "admissions",
+      "source_file": "hosp/admissions.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "910b9f160ffdf1e08ea673585393f347c773ccc87d66875c627584a903ae8493",
+      "contract_hash": "e725289ef5909fe3",
+      "source_rows": 0,
+      "loaded_rows": 275,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.000465832999907434,
+      "error_message": null
+    },
+    {
+      "table": "transfers",
+      "source_file": "hosp/transfers.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "41151539886d12d57159b65ffe4d7df5a7ef8ceb7cd113ea9a56fbfbfd78a87c",
+      "contract_hash": "af410392463a2603",
+      "source_rows": 0,
+      "loaded_rows": 1190,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.00040675001218914986,
+      "error_message": null
+    },
+    {
+      "table": "services",
+      "source_file": "hosp/services.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "28306d68e952fe2cc9ef6e60b0afda93c27d7a06bee8ef39e71ccc4de5ded793",
+      "contract_hash": "03f9f5273fc982a5",
+      "source_rows": 0,
+      "loaded_rows": 319,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.00032983400160446763,
+      "error_message": null
+    },
+    {
+      "table": "d_icd_diagnoses",
+      "source_file": "hosp/d_icd_diagnoses.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "0f715a3c4c5e44400305d4deb86ff648e499a3bfcb946f353e8b030022d3ec06",
+      "contract_hash": "31722bad1de924d3",
+      "source_rows": 0,
+      "loaded_rows": 109775,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.004309916985221207,
+      "error_message": null
+    },
+    {
+      "table": "diagnoses_icd",
+      "source_file": "hosp/diagnoses_icd.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "958565670c0b3903c0c12825366dc2bae8561d2d55f16feac0c949dd630ed3e4",
+      "contract_hash": "de461cd5f9f0418e",
+      "source_rows": 0,
+      "loaded_rows": 4506,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.000587083981372416,
+      "error_message": null
+    },
+    {
+      "table": "d_icd_procedures",
+      "source_file": "hosp/d_icd_procedures.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "a921a20fbf3220e2a7fe874d6392d671c1cc769a001ef0a7841b80eb01030bb6",
+      "contract_hash": "a4b85247a5fe5850",
+      "source_rows": 0,
+      "loaded_rows": 85257,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.0033251670538447797,
+      "error_message": null
+    },
+    {
+      "table": "procedures_icd",
+      "source_file": "hosp/procedures_icd.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "68f21dcba9ae0c4b7faa3ef38aa950a8ebeb6d167bc74416314dccdcf28674e0",
+      "contract_hash": "7bda9b0d916f9613",
+      "source_rows": 0,
+      "loaded_rows": 722,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.00044779200106859207,
+      "error_message": null
+    },
+    {
+      "table": "d_labitems",
+      "source_file": "hosp/d_labitems.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "72ea5f020469fd24543bd98ab3bd0a4f645a5a4b7802d9d52af20d736f9d76db",
+      "contract_hash": "b99ef450468027af",
+      "source_rows": 0,
+      "loaded_rows": 1622,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.00038870901335030794,
+      "error_message": null
+    },
+    {
+      "table": "labevents",
+      "source_file": "hosp/labevents.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "d51a4cf1ea63245abe7d544b0d50a928e9ee2ec5eb9a5ce85500aed0bd6c6dfc",
+      "contract_hash": "9cf3f4e73e4c13c5",
+      "source_rows": 0,
+      "loaded_rows": 107727,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.003439666994381696,
+      "error_message": null
+    },
+    {
+      "table": "prescriptions",
+      "source_file": "hosp/prescriptions.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "33c392ba5b9299b08eca0a61911ba106f0aebdba26ed31b856bb9ffd49fe3654",
+      "contract_hash": "4c60a5c74660de67",
+      "source_rows": 0,
+      "loaded_rows": 18087,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.0011103750439360738,
+      "error_message": null
+    },
+    {
+      "table": "icustays",
+      "source_file": "icu/icustays.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "e05e81aa52a3022e522b6832a898101a69b84e64c17bb344d819e458d5bc21b3",
+      "contract_hash": "9da622aa9beb2459",
+      "source_rows": 0,
+      "loaded_rows": 140,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.0003452079836279154,
+      "error_message": null
+    },
+    {
+      "table": "d_items",
+      "source_file": "icu/d_items.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "1690467a822345226a041c1149237c418aa60098c6b699fb4cef64d73588a01f",
+      "contract_hash": "abd14270a4259aa8",
+      "source_rows": 0,
+      "loaded_rows": 4014,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.0004219579859636724,
+      "error_message": null
+    },
+    {
+      "table": "chartevents",
+      "source_file": "icu/chartevents.csv.gz",
+      "status": "skipped_unchanged",
+      "file_sha256": "90f096ad3db847ed1aaec073f8d86053c51fea7b616d3b046410e030f083d560",
+      "contract_hash": "ef745f823eaecd5f",
+      "source_rows": 0,
+      "loaded_rows": 668862,
+      "rejected_rows": 0,
+      "duplicate_key_rows": 0,
+      "orphan_rows": {},
+      "extra_columns": [],
+      "duration_seconds": 0.010010500031057745,
+      "error_message": null
+    }
+  ],
+  "checks": [
+    {
+      "check": "admissions_discharge_before_admit",
+      "table": "admissions",
+      "severity": "error",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Discharge timestamp earlier than admission timestamp (negative LOS)."
+    },
+    {
+      "check": "admissions_missing_dischtime",
+      "table": "admissions",
+      "severity": "error",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Admissions with no discharge timestamp (LOS cannot be computed)."
+    },
+    {
+      "check": "admissions_deathtime_outside_stay",
+      "table": "admissions",
+      "severity": "warn",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Death timestamp more than 24h outside the admission window."
+    },
+    {
+      "check": "admissions_expire_flag_mismatch",
+      "table": "admissions",
+      "severity": "warn",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "hospital_expire_flag disagrees with presence of deathtime."
+    },
+    {
+      "check": "admissions_overlapping_same_patient",
+      "table": "admissions",
+      "severity": "warn",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Admission begins before the same patient's previous admission ended."
+    },
+    {
+      "check": "admissions_los_over_180_days",
+      "table": "admissions",
+      "severity": "info",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Hospital stays longer than 180 days (extreme but possible)."
+    },
+    {
+      "check": "admissions_null_discharge_location",
+      "table": "admissions",
+      "severity": "info",
+      "status": "flag",
+      "flagged_rows": 42,
+      "description": "Admissions with no recorded discharge location."
+    },
+    {
+      "check": "patients_dod_before_last_discharge",
+      "table": "patients",
+      "severity": "warn",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Date of death earlier than the patient's last discharge date."
+    },
+    {
+      "check": "icustays_outtime_before_intime",
+      "table": "icustays",
+      "severity": "error",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "ICU outtime earlier than intime."
+    },
+    {
+      "check": "icustays_outside_admission_window",
+      "table": "icustays",
+      "severity": "info",
+      "status": "flag",
+      "flagged_rows": 24,
+      "description": "ICU stay starts before admittime or ends after dischtime (commonly ED/OR time recorded before the formal admission)."
+    },
+    {
+      "check": "icustays_los_mismatch",
+      "table": "icustays",
+      "severity": "warn",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Source los differs from (outtime - intime) by more than 1 hour."
+    },
+    {
+      "check": "transfers_outtime_before_intime",
+      "table": "transfers",
+      "severity": "error",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Transfer outtime earlier than intime."
+    },
+    {
+      "check": "labevents_without_admission",
+      "table": "labevents",
+      "severity": "info",
+      "status": "flag",
+      "flagged_rows": 28420,
+      "description": "Lab events with no hadm_id (outpatient or pre-admission draws)."
+    },
+    {
+      "check": "labevents_inverted_reference_range",
+      "table": "labevents",
+      "severity": "warn",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Reference range lower bound above upper bound."
+    },
+    {
+      "check": "labevents_flag_without_range",
+      "table": "labevents",
+      "severity": "info",
+      "status": "flag",
+      "flagged_rows": 1305,
+      "description": "Results flagged abnormal that carry no numeric reference range."
+    },
+    {
+      "check": "prescriptions_stop_before_start",
+      "table": "prescriptions",
+      "severity": "warn",
+      "status": "flag",
+      "flagged_rows": 753,
+      "description": "Prescription stoptime earlier than starttime."
+    },
+    {
+      "check": "chartevents_negative_heart_rate",
+      "table": "chartevents",
+      "severity": "warn",
+      "status": "pass",
+      "flagged_rows": 0,
+      "description": "Heart rate (itemid 220045) recorded below 0 or above 300 bpm."
+    }
+  ],
+  "missingness": [
+    {
+      "table": "admissions",
+      "column": "deathtime",
+      "null_pct": 94.545
+    },
+    {
+      "table": "admissions",
+      "column": "edouttime",
+      "null_pct": 33.818
+    },
+    {
+      "table": "admissions",
+      "column": "edregtime",
+      "null_pct": 33.818
+    },
+    {
+      "table": "admissions",
+      "column": "discharge_location",
+      "null_pct": 15.273
+    },
+    {
+      "table": "admissions",
+      "column": "marital_status",
+      "null_pct": 4.364
+    },
+    {
+      "table": "chartevents",
+      "column": "valueuom",
+      "null_pct": 75.694
+    },
+    {
+      "table": "chartevents",
+      "column": "valuenum",
+      "null_pct": 61.506
+    },
+    {
+      "table": "chartevents",
+      "column": "caregiver_id",
+      "null_pct": 3.624
+    },
+    {
+      "table": "chartevents",
+      "column": "warning",
+      "null_pct": 0.173
+    },
+    {
+      "table": "chartevents",
+      "column": "storetime",
+      "null_pct": 0.173
+    },
+    {
+      "table": "d_items",
+      "column": "lownormalvalue",
+      "null_pct": 99.527
+    },
+    {
+      "table": "d_items",
+      "column": "highnormalvalue",
+      "null_pct": 99.452
+    },
+    {
+      "table": "d_items",
+      "column": "unitname",
+      "null_pct": 60.339
+    },
+    {
+      "table": "d_labitems",
+      "column": "label",
+      "null_pct": 0.185
+    },
+    {
+      "table": "labevents",
+      "column": "order_provider_id",
+      "null_pct": 84.377
+    },
+    {
+      "table": "labevents",
+      "column": "comments",
+      "null_pct": 82.87
+    },
+    {
+      "table": "labevents",
+      "column": "flag",
+      "null_pct": 62.614
+    },
+    {
+      "table": "labevents",
+      "column": "hadm_id",
+      "null_pct": 26.382
+    },
+    {
+      "table": "labevents",
+      "column": "ref_range_upper",
+      "null_pct": 17.385
+    },
+    {
+      "table": "labevents",
+      "column": "ref_range_lower",
+      "null_pct": 17.385
+    },
+    {
+      "table": "labevents",
+      "column": "valueuom",
+      "null_pct": 15.041
+    },
+    {
+      "table": "labevents",
+      "column": "valuenum",
+      "null_pct": 11.586
+    },
+    {
+      "table": "labevents",
+      "column": "value",
+      "null_pct": 8.9
+    },
+    {
+      "table": "labevents",
+      "column": "priority",
+      "null_pct": 8.66
+    },
+    {
+      "table": "labevents",
+      "column": "storetime",
+      "null_pct": 0.921
+    },
+    {
+      "table": "patients",
+      "column": "dod",
+      "null_pct": 69.0
+    },
+    {
+      "table": "prescriptions",
+      "column": "form_rx",
+      "null_pct": 99.934
+    },
+    {
+      "table": "prescriptions",
+      "column": "doses_per_24_hrs",
+      "null_pct": 40.819
+    },
+    {
+      "table": "prescriptions",
+      "column": "gsn",
+      "null_pct": 13.927
+    },
+    {
+      "table": "prescriptions",
+      "column": "poe_seq",
+      "null_pct": 0.652
+    },
+    {
+      "table": "prescriptions",
+      "column": "poe_id",
+      "null_pct": 0.652
+    },
+    {
+      "table": "prescriptions",
+      "column": "order_provider_id",
+      "null_pct": 0.52
+    },
+    {
+      "table": "prescriptions",
+      "column": "ndc",
+      "null_pct": 0.116
+    },
+    {
+      "table": "prescriptions",
+      "column": "stoptime",
+      "null_pct": 0.077
+    },
+    {
+      "table": "prescriptions",
+      "column": "formulary_drug_cd",
+      "null_pct": 0.066
+    },
+    {
+      "table": "prescriptions",
+      "column": "form_val_disp",
+      "null_pct": 0.05
+    },
+    {
+      "table": "prescriptions",
+      "column": "form_unit_disp",
+      "null_pct": 0.05
+    },
+    {
+      "table": "prescriptions",
+      "column": "prod_strength",
+      "null_pct": 0.05
+    },
+    {
+      "table": "prescriptions",
+      "column": "dose_val_rx",
+      "null_pct": 0.05
+    },
+    {
+      "table": "prescriptions",
+      "column": "dose_unit_rx",
+      "null_pct": 0.05
+    },
+    {
+      "table": "prescriptions",
+      "column": "route",
+      "null_pct": 0.033
+    },
+    {
+      "table": "services",
+      "column": "prev_service",
+      "null_pct": 86.207
+    },
+    {
+      "table": "transfers",
+      "column": "careunit",
+      "null_pct": 23.109
+    },
+    {
+      "table": "transfers",
+      "column": "outtime",
+      "null_pct": 23.109
+    },
+    {
+      "table": "transfers",
+      "column": "hadm_id",
+      "null_pct": 4.538
+    }
+  ]
+}

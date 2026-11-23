@@ -1,0 +1,256 @@
+version: 2
+
+models:
+  # ------------------------------------------------------------------ facts
+  - name: fact_admissions
+    description: >
+      **Grain: one row per hospital admission (hadm_id).** Central fact for
+      LOS, mortality, ICU use, readmission and resource-utilisation proxies.
+      Child tables are pre-aggregated to hadm_id before joining (no fan-out).
+    data_tests:
+      - row_count_equals:
+          arguments:
+            compare_model: ref('stg_admissions')
+      - expression_is_true:
+          arguments:
+            expression: "los_hours >= 0"
+      - expression_is_true:
+          arguments:
+            expression: "n_abnormal_lab_events <= n_lab_events"
+      - expression_is_true:
+          arguments:
+            expression: "not died_in_icu or had_icu_stay"
+      - expression_is_true:
+          arguments:
+            expression: "(n_icu_stays > 0) = had_icu_stay"
+    columns:
+      - name: hadm_id
+        description: MIMIC hospital admission identifier (primary key).
+        data_tests: [unique, not_null]
+      - name: subject_id
+        description: Patient identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_patient'), field: subject_id}
+      - name: admission_type
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_admission_type'), field: admission_type}
+      - name: admission_group
+        description: Emergency / Urgent / Elective / Observation (seed admission_type_groups).
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['Emergency', 'Urgent', 'Elective', 'Observation']}
+      - name: age_at_admission
+        description: anchor_age + (admission year - anchor_year). A floor for top-coded patients.
+        data_tests:
+          - value_between:
+              arguments: {min_value: 18, max_value: 110}
+      - name: age_group
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['<18', '18-44', '45-64', '65-79', '80+']}
+      - name: los_days
+        description: Hospital length of stay in fractional days (dischtime - admittime).
+        data_tests: [not_null]
+      - name: died_in_hospital
+        description: hospital_expire_flag = 1.
+        data_tests: [not_null]
+      - name: had_icu_stay
+        description: At least one ICU stay (icustays) linked to the admission.
+      - name: n_unit_changes
+        description: Movements whose care unit differs from the previous movement's unit.
+      - name: n_lab_events
+        description: Lab measurements linked to this hadm_id (outpatient labs excluded).
+      - name: primary_diagnosis_category
+        description: Harmonised ICD chapter of the seq_num = 1 diagnosis.
+      - name: charlson_comorbidity_score
+        description: Charlson comorbidity score (Quan 2005 ICD coding), excluding age points.
+        data_tests:
+          - not_null
+          - value_between:
+              arguments: {min_value: 0, max_value: 33}
+      - name: is_readmission_index_eligible
+        description: Admission qualifies as an index discharge for 30-day readmission.
+      - name: is_readmitted_30d
+        description: Eligible index followed by any admission within 30 days of discharge.
+      - name: is_30d_readmission
+        description: This admission itself occurred within 30 days of an eligible index discharge.
+
+  - name: fact_readmissions
+    description: >
+      **Grain: one row per admission considered as a potential index discharge
+      (index_hadm_id).** Filter `is_eligible_index` for the rate denominator.
+    data_tests:
+      - row_count_equals:
+          arguments:
+            compare_model: ref('fact_admissions')
+      - expression_is_true:
+          arguments:
+            expression: "not is_readmitted_30d or is_eligible_index"
+      - expression_is_true:
+          arguments:
+            expression: "not is_unplanned_readmitted_30d or is_readmitted_30d"
+      - expression_is_true:
+          arguments:
+            expression: "not is_readmitted_30d or days_to_next_admission between 0 and 30"
+      - expression_is_true:
+          arguments:
+            expression: "is_eligible_index = (exclusion_reason is null)"
+    columns:
+      - name: index_hadm_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments: {to: ref('fact_admissions'), field: hadm_id}
+      - name: next_hadm_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('fact_admissions'), field: hadm_id}
+      - name: exclusion_reason
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['missing_dischtime', 'died_in_hospital', 'transfer_to_acute_care',
+                         'left_against_medical_advice', 'overlapping_next_admission']
+
+  - name: fact_icu_stays
+    description: "**Grain: one row per ICU stay (stay_id).**"
+    data_tests:
+      - row_count_equals:
+          arguments:
+            compare_model: source('mimic_raw', 'icustays')
+      - expression_is_true:
+          arguments:
+            expression: "icu_los_hours >= 0"
+    columns:
+      - name: stay_id
+        data_tests: [unique, not_null]
+      - name: hadm_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('fact_admissions'), field: hadm_id}
+      - name: first_careunit
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_care_unit'), field: care_unit}
+      - name: died_in_icu
+        description: Death between ICU intime and outtime + 6h grace (var icu_death_grace_hours).
+
+  - name: fact_care_transfers
+    description: "**Grain: one row per admission-linked movement into a care unit (transfer_id).**"
+    columns:
+      - name: transfer_id
+        data_tests: [unique, not_null]
+      - name: hadm_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('fact_admissions'), field: hadm_id}
+      - name: care_unit
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_care_unit'), field: care_unit}
+      - name: unit_type
+        description: Seed classification; 'Unclassified' means the seed needs a new entry.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['ICU', 'Intermediate / step-down', 'Emergency', 'Observation',
+                         'Perioperative', 'Obstetrics', 'Medical ward', 'Surgical ward',
+                         'Mixed med-surg ward', 'Discharge lounge', 'Unknown']
+              config: {severity: warn}
+
+  - name: fact_diagnoses
+    description: "**Grain: one row per billed diagnosis (hadm_id, seq_num).**"
+    data_tests:
+      - unique_combination:
+          arguments: {columns: ['hadm_id', 'seq_num']}
+      - row_count_equals:
+          arguments:
+            compare_model: source('mimic_raw', 'diagnoses_icd')
+    columns:
+      - name: hadm_id
+        data_tests:
+          - relationships:
+              arguments: {to: ref('fact_admissions'), field: hadm_id}
+      - name: diagnosis_category
+        description: Harmonised ICD chapter; 'Unclassified' means icd_chapters needs a range.
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "diagnosis_category <> 'Unclassified'"
+              config: {severity: warn}
+
+  - name: fact_lab_events
+    description: "**Grain: one row per lab measurement (labevent_id).** Incremental."
+    data_tests:
+      - row_count_equals:
+          arguments:
+            compare_model: source('mimic_raw', 'labevents')
+    columns:
+      - name: labevent_id
+        data_tests: [unique, not_null]
+      - name: itemid
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_lab_test'), field: itemid}
+      - name: range_direction
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['low', 'normal', 'high']}
+
+  - name: fact_medication_orders
+    description: "**Grain: one prescription order (prescription_key).** Orders, not administrations."
+    columns:
+      - name: prescription_key
+        data_tests: [unique, not_null]
+      - name: medication_key
+        data_tests:
+          - relationships:
+              arguments: {to: ref('dim_medication'), field: medication_key}
+
+  # ------------------------------------------------------------- dimensions
+  - name: dim_patient
+    description: "**Grain: one row per patient (subject_id).** De-identified attributes."
+    columns:
+      - name: subject_id
+        data_tests: [unique, not_null]
+      - name: sex
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['F', 'M']}
+
+  - name: dim_care_unit
+    description: "**Grain: one row per care unit name.**"
+    columns:
+      - name: care_unit
+        data_tests: [unique, not_null]
+
+  - name: dim_diagnosis
+    description: "**Grain: one row per (icd_code, icd_version).**"
+    data_tests:
+      - unique_combination:
+          arguments: {columns: ['icd_code', 'icd_version']}
+
+  - name: dim_lab_test
+    description: "**Grain: one row per lab itemid.**"
+    columns:
+      - name: itemid
+        data_tests: [unique, not_null]
+
+  - name: dim_medication
+    description: "**Grain: one row per normalised drug name.**"
+    columns:
+      - name: medication_key
+        data_tests: [unique, not_null]
+
+  - name: dim_admission_type
+    description: "**Grain: one row per source admission_type.**"
+    columns:
+      - name: admission_type
+        data_tests: [unique, not_null]

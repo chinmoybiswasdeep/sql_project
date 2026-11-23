@@ -1,0 +1,8 @@
+Seq Scan on mv_lab_test_summary  (cost=0.00..12.98 rows=498 width=49) (actual time=0.001..0.012 rows=498 loops=1)
+  Buffers: shared hit=8
+Settings: work_mem = '64MB'
+Planning:
+  Buffers: shared hit=22 read=1
+  I/O Timings: shared read=0.002
+Planning Time: 0.022 ms
+Execution Time: 0.021 ms

@@ -1,0 +1,31 @@
+version: 2
+
+sources:
+  - name: pipeline_meta
+    description: Audit tables written by the Python ingestion pipeline.
+    schema: meta
+    tables:
+      - name: ingestion_runs
+      - name: ingestion_table_log
+      - name: validation_results
+      - name: column_profile
+      - name: query_benchmarks
+
+models:
+  - name: rpt_executive_kpis
+    description: >
+      Single-row headline KPIs (aggregate only, no patient-level data). Each
+      KPI has a definition in docs/metric_definitions.md.
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "readmission_numerator <= readmission_denominator"
+      - expression_is_true:
+          arguments:
+            expression: "total_admissions >= total_patients"
+  - name: rpt_pipeline_status
+    description: Latest load outcome per source table, with row-count reconciliation.
+  - name: rpt_data_quality_checks
+    description: Plausibility check results from the most recent ingestion run.
+  - name: rpt_missingness
+    description: Latest null-percentage profile per raw column.

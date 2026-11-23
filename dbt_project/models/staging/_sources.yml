@@ -1,0 +1,54 @@
+version: 2
+
+sources:
+  - name: mimic_raw
+    description: >
+      MIMIC-IV tables loaded verbatim (typed) by the Python ingestion pipeline.
+      Demo mode: MIMIC-IV Clinical Database Demo v2.2 (100 patients, open access).
+      Full mode: credentialed MIMIC-IV v3.1.
+    schema: raw
+    loaded_at_field: null
+    tables:
+      - name: patients
+        description: One row per patient. Ages > 89 are top-coded at 91 by MIMIC.
+        columns:
+          - name: subject_id
+            data_tests: [unique, not_null]
+      - name: admissions
+        description: One row per hospital admission (hadm_id).
+        columns:
+          - name: hadm_id
+            data_tests: [unique, not_null]
+          - name: subject_id
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: "source('mimic_raw', 'patients')"
+                    field: subject_id
+      - name: transfers
+        description: Ward/unit movements, including ED, admit, transfer and discharge events.
+        columns:
+          - name: transfer_id
+            data_tests: [unique, not_null]
+      - name: services
+        description: Clinical service (team) changes during an admission.
+      - name: diagnoses_icd
+        description: Billed ICD-9/10 diagnoses per admission, ordered by seq_num (priority).
+      - name: d_icd_diagnoses
+      - name: procedures_icd
+      - name: d_icd_procedures
+      - name: labevents
+        description: Laboratory measurements, inpatient and outpatient.
+        columns:
+          - name: labevent_id
+            data_tests: [unique, not_null]
+      - name: d_labitems
+      - name: prescriptions
+        description: Medication orders (prescribed, not necessarily administered).
+      - name: icustays
+        description: ICU stays derived by MIMIC from transfers.
+        columns:
+          - name: stay_id
+            data_tests: [unique, not_null]
+      - name: d_items

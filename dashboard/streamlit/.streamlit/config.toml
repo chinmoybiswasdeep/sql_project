@@ -1,0 +1,32 @@
+# Theme for the Hospital Intelligence dashboard.
+# Streamlit reads this file because it sits next to the main script (app.py), so it applies
+# whether you run `streamlit run dashboard/streamlit/app.py` from the project root or
+# `streamlit run app.py` from this directory. Colour values mirror dashboard/streamlit/theme.py.
+
+[theme]
+base = "light"
+primaryColor = "#1c5cab"
+backgroundColor = "#f6f8fb"
+secondaryBackgroundColor = "#eef2f7"
+textColor = "#0b0b0b"
+linkColor = "#1c5cab"
+borderColor = "#dde3ea"
+showWidgetBorder = true
+baseRadius = "medium"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap, sans-serif"
+codeFont = "monospace"
+
+[theme.sidebar]
+backgroundColor = "#eef2f7"
+secondaryBackgroundColor = "#ffffff"
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = "type"
+
+[server]
+headless = true
+runOnSave = false
+
+[browser]
+gatherUsageStats = false

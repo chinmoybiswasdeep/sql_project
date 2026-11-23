@@ -1,0 +1,19 @@
+HashAggregate  (cost=22282.03..22283.43 rows=140 width=44) (actual time=36.166..36.174 rows=140 loops=1)
+  Group Key: i.stay_id
+  Batches: 1  Memory Usage: 64kB
+  Buffers: shared hit=9038
+  ->  Hash Right Join  (cost=6.15..20700.78 rows=57500 width=8) (actual time=0.017..32.934 rows=58062 loops=1)
+        Hash Cond: (c.stay_id = i.stay_id)
+        Buffers: shared hit=9038
+        ->  Seq Scan on chartevents c  (cost=0.00..19904.01 rows=57500 width=8) (actual time=0.003..29.632 rows=58062 loops=1)
+              Filter: (itemid = ANY ('{220045,220179,220180,220210,220277}'::integer[]))
+              Rows Removed by Filter: 610800
+              Buffers: shared hit=9035
+        ->  Hash  (cost=4.40..4.40 rows=140 width=4) (actual time=0.012..0.013 rows=140 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 13kB
+              Buffers: shared hit=3
+              ->  Seq Scan on icustays i  (cost=0.00..4.40 rows=140 width=4) (actual time=0.003..0.008 rows=140 loops=1)
+                    Buffers: shared hit=3
+Settings: work_mem = '64MB'
+Planning Time: 0.057 ms
+Execution Time: 36.191 ms

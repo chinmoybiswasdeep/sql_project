@@ -1,0 +1,43 @@
+careunit,unit_type,is_icu
+Medical Intensive Care Unit (MICU),ICU,true
+Surgical Intensive Care Unit (SICU),ICU,true
+Cardiac Vascular Intensive Care Unit (CVICU),ICU,true
+Coronary Care Unit (CCU),ICU,true
+Trauma SICU (TSICU),ICU,true
+Neuro Surgical Intensive Care Unit (Neuro SICU),ICU,true
+Medical/Surgical Intensive Care Unit (MICU/SICU),ICU,true
+Neonatal Intensive Care Unit (NICU),ICU,true
+Neuro Intermediate,Intermediate / step-down,false
+Neuro Stepdown,Intermediate / step-down,false
+Cardiology Surgery Intermediate,Intermediate / step-down,false
+Medicine/Cardiology Intermediate,Intermediate / step-down,false
+Hematology/Oncology Intermediate,Intermediate / step-down,false
+Surgery/Vascular/Intermediate,Intermediate / step-down,false
+Emergency Department,Emergency,false
+Emergency Department Observation,Observation,false
+Observation,Observation,false
+PACU,Perioperative,false
+Labor & Delivery,Obstetrics,false
+Obstetrics (Postpartum & Antepartum),Obstetrics,false
+Obstetrics Antepartum,Obstetrics,false
+Obstetrics Postpartum,Obstetrics,false
+Special Care Nursery (SCN),Obstetrics,false
+Nursery - Well Babies,Obstetrics,false
+Medicine,Medical ward,false
+Medicine/Cardiology,Medical ward,false
+Cardiology,Medical ward,false
+Hematology/Oncology,Medical ward,false
+Neurology,Medical ward,false
+Psychiatry,Medical ward,false
+Transplant,Surgical ward,false
+Cardiac Surgery,Surgical ward,false
+Thoracic Surgery,Surgical ward,false
+Vascular,Surgical ward,false
+Surgery,Surgical ward,false
+Surgery/Trauma,Surgical ward,false
+Surgery/Pancreatic/Biliary/Bariatric,Surgical ward,false
+Med/Surg,Mixed med-surg ward,false
+Med/Surg/GYN,Mixed med-surg ward,false
+Med/Surg/Trauma,Mixed med-surg ward,false
+Discharge Lounge,Discharge lounge,false
+Unknown,Unknown,false

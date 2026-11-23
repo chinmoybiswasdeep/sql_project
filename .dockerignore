@@ -1,0 +1,11 @@
+.venv
+.pgdata
+data/
+logs/
+reports/sql_results/
+powerbi/datasets/
+dbt_project/target/
+dbt_project/logs/
+.env
+**/__pycache__
+.git

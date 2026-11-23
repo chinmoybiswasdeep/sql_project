@@ -1,0 +1,158 @@
+# Analyst interpretations of each query's ACTUAL output on mimic-iv-demo-2.2.
+# Written after reviewing the results in docs/sql_catalog.md. If the data
+# changes (e.g. the full dataset), the numbers quoted here must be re-checked;
+# tests/test_sql_queries.py asserts the key figures quoted below so a stale
+# interpretation fails CI instead of silently misleading.
+
+Q01: >
+  100 patients account for 275 admissions (2.75 per patient), but the median patient has
+  only 1 admission. Use is highly concentrated: the 48% of patients with repeat admissions
+  generate 81.1% of all admissions, and one patient has 20. Mean-based "per patient" figures
+  are therefore driven by a small group of frequent patients.
+
+Q02: >
+  The 45-64 band generates 48.4% of admissions; men in that band alone account for 28.7%.
+  Admissions per patient are highest for women aged 65-79 (3.50) and men aged 45-64 (3.43),
+  which means a few frequent patients in each segment. Patient counts across age bands add up
+  to more than 100 because age is measured per admission and patients age across stays.
+
+Q03: >
+  Emergency admissions (EW EMER. + DIRECT EMER.) are 43.3% of encounters. Observation-status
+  encounters are a large 31.6%, and most arrive through the emergency room. Elective and
+  same-day surgical admissions come entirely through physician referral, with no ED contact.
+
+Q04: >
+  The median hospital stay is 4.85 days (IQR 2.69-8.77), but the mean is 6.88 days. That
+  gap shows a right-skewed distribution: 10% of stays exceed 14.5 days. Patients who died in
+  hospital stayed longer (median 8.57 days, n = 15) than survivors (4.72 days).
+
+Q05: >
+  Circulatory disease is the leading principal diagnosis (24.4% of admissions), followed by
+  injury/poisoning (12.7%) and digestive disease (12.0%). Chronic conditions are much more
+  common as secondary codes: endocrine/metabolic codes appear on 80.0% of admissions but are
+  the principal reason for only 4.7%. This is the comorbidity burden that the Charlson
+  analysis (Q25) quantifies.
+
+Q06: >
+  Of 275 admissions, 20 are excluded (15 in-hospital deaths, 4 against-advice discharges,
+  1 transfer to another acute hospital). That leaves 255 eligible index discharges, of which
+  52 were followed by an admission within 30 days: a 20.4% all-cause rate. 48 of those (18.8%)
+  were unplanned and 4 occurred within 24 hours. This is a selected ICU-patient sample and only
+  same-hospital returns are visible, so this figure must not be compared with national
+  benchmarks.
+
+Q07: >
+  Rates are similar for ages 18-79 (21.9-23.1%) and lower for 80+ (11.9%, 95% CI 5.2-25.0%).
+  Every interval overlaps the others, so the demo cannot show a real age difference. The
+  lower 80+ rate could also reflect competing mortality or discharge to hospice/facilities,
+  which this metric does not adjust for.
+
+Q08: >
+  Respiratory (38.5%, n = 13) and mental/behavioral (30.8%, n = 13) index stays rank highest,
+  and circulatory ranks lowest (12.5%, n = 64). With 10-64 discharges per category the
+  intervals are wide and largely overlapping. Treat this as a hypothesis-generating ranking to
+  re-test on the full dataset, not as a finding.
+
+Q09: >
+  Among returns after a live discharge, 30.3% happen within 30 days and half within about 3
+  months (median 89 days). A further 20% return in days 31-90. That suggests a 90-day view
+  would capture substantially more early returns than the standard 30-day window.
+
+Q10: >
+  12 patients with 7+ admissions generate 43.6% of all admissions and average 2.58 30-day
+  readmissions each. The frequent-admission group is where readmission activity
+  concentrates. Their admissions involve ICU care less often (21.7%) than single-admission
+  patients' (100%, a sampling artefact: every demo patient had an ICU stay).
+
+Q11: >
+  46.5% of admissions include ICU care: 43.3% have one ICU stay and 3.2% have two or more.
+  7.0% of ICU admissions involve a return to ICU within the same hospitalization, with a
+  median of 38 hours between ICU discharge and readmission to ICU. The ICU share reflects
+  the demo's ICU-only sampling, not hospital-wide practice.
+
+Q12: >
+  The median ICU stay is 2.16 days and 60.7% of stays end within 3 days. The long tail
+  dominates resource use: the 14.3% of stays lasting 7+ days account for 45.5% of all ICU
+  days.
+
+Q13: >
+  The MICU consumes the most ICU days (22.7%), followed by the combined MICU/SICU (19.0%) and
+  SICU (15.9%). The CCU has the longest median stay (4.95 days) and the CVICU the shortest
+  (2.00 days), consistent with a planned post-cardiac-surgery pathway. These are utilisation
+  shares, not occupancy rates: bed capacity is not in MIMIC.
+
+Q14: >
+  The most frequent ICU-related flows are ICU to medical ward (56) and ED to ICU (55). Patients
+  spend a median 4.3 hours in the ED before moving to ICU and about 35-49 hours in ICU before
+  stepping down to a ward. "Discharge lounge to ICU" (18) is a pre-procedure holding pattern for
+  planned surgical admissions, not a discharge reversal, and is documented as such.
+
+Q15: >
+  ICU mortality (death during the stay + 6h) is 8.6% (12/140, CI 5.0-14.4%); hospital
+  mortality for the same stays is 14.3%, so some deaths occur after ICU discharge. Rates are
+  numerically higher for men (11.7% vs 4.8%) and in the CCU (23.1%) and MICU (17.2%), but
+  the rates are unadjusted for severity and the CIs overlap.
+
+Q16: >
+  Basic chemistry and complete blood count components make up the top 20 tests. Each is
+  measured on 86-91% of admissions, and together the top 20 account for 56.8% of
+  admission-linked lab results. Most volume comes from routine repeated panels, not
+  specialised tests.
+
+Q17: >
+  Red cell indices (RBC 86.8%, hemoglobin 85.9%, hematocrit 83.3% flagged abnormal), almost
+  all LOW, are the most frequently abnormal high-volume tests. That is consistent with anaemia
+  being common in a hospitalised ICU cohort. Glucose is abnormal on 76.9% of results, mostly
+  HIGH. The lab flag agrees with the row's reference range on 99.5-100% of evaluable results.
+  These are measurement frequencies, not diagnoses.
+
+Q18: >
+  The most frequent pair is ICD-9 hyperlipidemia with hypertension (31 admissions). The
+  strongest associations among frequent pairs are coronary atherosclerosis with a coronary
+  stent (lift 6.94) and atrial fibrillation with long-term anticoagulant use (lift 6.47).
+  These are clinically coherent condition-treatment pairs, which supports the integrity of
+  the coding data.
+
+Q19: >
+  Excluding diluents and line flushes, the most widely ordered therapeutic drugs are
+  acetaminophen (64.0% of admissions), heparin (62.9%, mostly subcutaneous, consistent with
+  VTE prophylaxis) and bowel regimen agents (docusate 56.4%, senna 53.8%). Insulin has the
+  most orders per exposed admission (7.04), reflecting sliding-scale reordering. Hypoglycaemia
+  rescue orders (dextrose 50%, glucagon) appear on about half of admissions as PRN protocol
+  orders.
+
+Q20: >
+  Crude in-hospital mortality is highest for respiratory (16.7%, 3/18) and digestive (12.1%,
+  4/33) principal diagnoses. With 15 deaths in total, every interval is wide (e.g.
+  respiratory 5.8-39.2%) and the rates are unadjusted for severity. No conclusions about care
+  quality are possible.
+
+Q21: >
+  URGENT admissions have the longest stays (median 7.86 days, 1.62x the hospital median; 18.4%
+  stay 14+ days), followed by ELECTIVE (6.19 days). "OBSERVATION ADMIT" encounters have a median
+  of 4.85 days, with 15.6% lasting 14+ days, which is long for observation status and suggests
+  the label includes encounters that became full inpatient stays. Worth reviewing against
+  status-change data on the full dataset.
+
+Q22: >
+  Admissions average 1.64 care-unit changes and 17.8% have three or more. URGENT admissions
+  move most (26.3% with 3+ changes). Unit changes correlate moderately with LOS overall
+  (Pearson 0.40, rank 0.46); this is partly mechanical, because longer stays give more
+  chances to move.
+
+Q23: >
+  Emergency admissions with ICU care generate 32.7% of all admission-linked lab results. ICU
+  admissions run about 38-49 results per inpatient day versus about 25-28 without ICU, so lab
+  workload follows ICU exposure more than admission type.
+
+Q24: >
+  Among frequently admitted patients (4+ admissions), ICU use falls from 31.6% of first
+  admissions to 16.2% of 4th+ admissions. Single-admission patients show 100% ICU use, which
+  is an artefact of the demo's ICU-only selection, not a clinical pattern. Full-dataset
+  validation is required before drawing operational conclusions.
+
+Q25: >
+  Resource proxies rise with comorbidity burden. Admissions with Charlson 5+ use 1.39x the
+  average LOS, 1.56x ICU days, 1.53x lab results and 1.45x medication orders; Charlson 0
+  admissions use 0.49-0.76x. These are event counts, not costs, and the association is
+  inflated because Charlson is coded at discharge.

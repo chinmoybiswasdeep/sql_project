@@ -1,0 +1,25 @@
+GroupAggregate  (cost=764.27..774.63 rows=140 width=52) (actual time=0.620..0.968 rows=140 loops=1)
+  Group Key: i.stay_id
+  Buffers: shared hit=383 read=60
+  I/O Timings: shared read=0.077
+  ->  Sort  (cost=764.27..765.78 rows=605 width=12) (actual time=0.609..0.676 rows=3815 loops=1)
+        Sort Key: i.stay_id
+        Sort Method: quicksort  Memory: 246kB
+        Buffers: shared hit=383 read=60
+        I/O Timings: shared read=0.077
+        ->  Nested Loop  (cost=0.43..736.31 rows=605 width=12) (actual time=0.016..0.457 rows=3815 loops=1)
+              Buffers: shared hit=383 read=60
+              I/O Timings: shared read=0.077
+              ->  Seq Scan on icustays i  (cost=0.00..4.40 rows=140 width=12) (actual time=0.002..0.006 rows=140 loops=1)
+                    Buffers: shared hit=3
+              ->  Index Only Scan using ix_perf_chartevents_item_stay_time on chartevents c  (cost=0.43..5.19 rows=4 width=20) (actual time=0.001..0.002 rows=27 loops=140)
+                    Index Cond: ((itemid = 220045) AND (stay_id = i.stay_id) AND (charttime >= i.intime) AND (charttime < (i.intime + '24:00:00'::interval)))
+                    Filter: (valuenum IS NOT NULL)
+                    Heap Fetches: 0
+                    Buffers: shared hit=380 read=60
+                    I/O Timings: shared read=0.077
+Settings: work_mem = '64MB'
+Planning:
+  Buffers: shared hit=25
+Planning Time: 0.091 ms
+Execution Time: 1.050 ms

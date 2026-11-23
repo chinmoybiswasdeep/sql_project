@@ -1,0 +1,32 @@
+GroupAggregate  (cost=13580.24..13655.88 rows=140 width=52) (actual time=10.739..11.572 rows=140 loops=1)
+  Group Key: i.stay_id
+  Buffers: shared hit=9250
+  ->  Gather Merge  (cost=13580.24..13647.32 rows=576 width=12) (actual time=10.708..11.253 rows=3815 loops=1)
+        Workers Planned: 2
+        Workers Launched: 2
+        Buffers: shared hit=9250
+        ->  Sort  (cost=12580.22..12580.82 rows=240 width=12) (actual time=9.666..9.691 rows=1272 loops=3)
+              Sort Key: i.stay_id
+              Sort Method: quicksort  Memory: 111kB
+              Buffers: shared hit=9250
+              Worker 0:  Sort Method: quicksort  Memory: 95kB
+              Worker 1:  Sort Method: quicksort  Memory: 89kB
+              ->  Hash Join  (cost=6.15..12570.73 rows=240 width=12) (actual time=0.060..9.573 rows=1272 loops=3)
+                    Hash Cond: (c.stay_id = i.stay_id)
+                    Join Filter: ((c.charttime >= i.intime) AND (c.charttime < (i.intime + '24:00:00'::interval)))
+                    Rows Removed by Join Filter: 3366
+                    Buffers: shared hit=9138
+                    ->  Parallel Seq Scan on chartevents c  (cost=0.00..12518.66 rows=2161 width=20) (actual time=0.010..9.204 rows=4638 loops=3)
+                          Filter: ((valuenum IS NOT NULL) AND (itemid = 220045))
+                          Rows Removed by Filter: 218316
+                          Buffers: shared hit=9035
+                    ->  Hash  (cost=4.40..4.40 rows=140 width=12) (actual time=0.026..0.026 rows=140 loops=3)
+                          Buckets: 1024  Batches: 1  Memory Usage: 15kB
+                          Buffers: shared hit=9
+                          ->  Seq Scan on icustays i  (cost=0.00..4.40 rows=140 width=12) (actual time=0.012..0.020 rows=140 loops=3)
+                                Buffers: shared hit=9
+Settings: work_mem = '64MB'
+Planning:
+  Buffers: shared hit=97
+Planning Time: 0.158 ms
+Execution Time: 11.593 ms

@@ -1,0 +1,22 @@
+GroupAggregate  (cost=13552.38..15723.14 rows=1622 width=49) (actual time=53.823..60.700 rows=498 loops=1)
+  Group Key: d.itemid, d.label, d.fluid
+  Buffers: shared hit=1953
+  ->  Sort  (cost=13552.38..13821.70 rows=107727 width=38) (actual time=53.817..55.710 rows=107727 loops=1)
+        Sort Key: d.itemid, d.label, d.fluid, l.hadm_id
+        Sort Method: quicksort  Memory: 8902kB
+        Buffers: shared hit=1953
+        ->  Hash Join  (cost=53.49..4548.01 rows=107727 width=38) (actual time=0.147..12.259 rows=107727 loops=1)
+              Hash Cond: (l.itemid = d.itemid)
+              Buffers: shared hit=1953
+              ->  Seq Scan on labevents l  (cost=0.00..3013.27 rows=107727 width=17) (actual time=0.001..2.495 rows=107727 loops=1)
+                    Buffers: shared hit=1936
+              ->  Hash  (cost=33.22..33.22 rows=1622 width=25) (actual time=0.143..0.143 rows=1622 loops=1)
+                    Buckets: 2048  Batches: 1  Memory Usage: 109kB
+                    Buffers: shared hit=17
+                    ->  Seq Scan on d_labitems d  (cost=0.00..33.22 rows=1622 width=25) (actual time=0.003..0.066 rows=1622 loops=1)
+                          Buffers: shared hit=17
+Settings: work_mem = '64MB'
+Planning:
+  Buffers: shared hit=42
+Planning Time: 0.120 ms
+Execution Time: 60.852 ms

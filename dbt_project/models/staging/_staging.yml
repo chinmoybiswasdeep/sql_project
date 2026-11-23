@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: stg_patients
+    description: "Grain: subject_id. Renamed gender -> sex; flags top-coded ages (>89)."
+    columns:
+      - name: subject_id
+        data_tests: [unique, not_null]
+  - name: stg_admissions
+    description: "Grain: hadm_id. Adds race_group, died_in_hospital, LOS and ED LOS in hours."
+    columns:
+      - name: hadm_id
+        data_tests: [unique, not_null]
+      - name: admission_type
+        data_tests:
+          - relationships:
+              arguments: {to: ref('admission_type_groups'), field: admission_type}
+              config: {severity: warn}
+  - name: stg_transfers
+    description: "Grain: transfer_id."
+    columns:
+      - name: event_type
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['ED', 'admit', 'transfer', 'discharge']}
+  - name: stg_services
+    description: "Grain: (hadm_id, service_start_time, curr_service)."
+    data_tests:
+      - unique_combination:
+          arguments: {columns: ['hadm_id', 'service_start_time', 'curr_service']}
+  - name: stg_diagnoses_icd
+    description: "Grain: (hadm_id, seq_num)."
+    columns:
+      - name: icd_version
+        data_tests:
+          - accepted_values:
+              arguments: {values: [9, 10], quote: false}
+  - name: stg_d_icd_diagnoses
+    description: "Grain: (icd_code, icd_version)."
+  - name: stg_procedures_icd
+    description: "Grain: (hadm_id, seq_num)."
+    data_tests:
+      - unique_combination:
+          arguments: {columns: ['hadm_id', 'seq_num']}
+  - name: stg_d_icd_procedures
+    description: "Grain: (icd_code, icd_version)."
+  - name: stg_labevents
+    description: "Grain: labevent_id. Adds flag_abnormal and range_direction."
+  - name: stg_d_labitems
+    description: "Grain: itemid."
+  - name: stg_prescriptions
+    description: "Grain: (hadm_id, pharmacy_id, drug, starttime) -> prescription_key."
+    columns:
+      - name: prescription_key
+        data_tests: [unique, not_null]
+  - name: stg_icustays
+    description: "Grain: stay_id."

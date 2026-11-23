@@ -1,0 +1,18 @@
+WindowAgg  (cost=2927.31..3208.17 rows=10213 width=28) (actual time=3.221..4.967 rows=11814 loops=1)
+  Buffers: shared hit=1920
+  ->  Sort  (cost=2927.31..2952.85 rows=10213 width=28) (actual time=3.218..3.417 rows=11814 loops=1)
+        Sort Key: subject_id, itemid, charttime, labevent_id
+        Sort Method: quicksort  Memory: 1031kB
+        Buffers: shared hit=1920
+        ->  Bitmap Heap Scan on labevents  (cost=138.21..2247.22 rows=10213 width=28) (actual time=0.244..1.271 rows=11814 loops=1)
+              Recheck Cond: (itemid = ANY ('{50912,50971,50983,51222}'::integer[]))
+              Filter: (valuenum IS NOT NULL)
+              Rows Removed by Filter: 5
+              Heap Blocks: exact=1903
+              Buffers: shared hit=1920
+              ->  Bitmap Index Scan on ix_raw_labevents_item  (cost=0.00..135.66 rows=11534 width=0) (actual time=0.150..0.150 rows=11819 loops=1)
+                    Index Cond: (itemid = ANY ('{50912,50971,50983,51222}'::integer[]))
+                    Buffers: shared hit=17
+Settings: work_mem = '64MB'
+Planning Time: 0.047 ms
+Execution Time: 5.184 ms

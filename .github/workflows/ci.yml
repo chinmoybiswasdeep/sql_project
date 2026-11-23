@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hi_admin
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: hospital_intel
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U hi_admin -d hospital_intel"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      HI_DATASET_MODE: demo
+      HI_PG_HOST: localhost
+      HI_PG_PORT: "5433"
+      HI_PG_USER: hi_admin
+      HI_PG_PASSWORD: ci_only
+      HI_PG_DB: hospital_intel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check config ingestion analytics tests
+      - name: Unit tests (no database)
+        run: pytest -q -m "not integration"
+      - name: Download public demo dataset (open access, checksum-verified)
+        run: python -m ingestion.download_demo
+      - name: Ingest
+        run: python -m ingestion.pipelines.run_ingestion
+      - name: dbt build (models + data tests + unit tests)
+        working-directory: dbt_project
+        run: dbt build --profiles-dir .
+      - name: Render SQL catalog
+        run: python -m analytics.reporting.sql_catalog
+      - name: Integration tests
+        run: pytest -q

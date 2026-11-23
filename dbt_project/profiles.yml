@@ -1,0 +1,25 @@
+# Credentials come from environment variables only; nothing secret lives here.
+# Run dbt with:  dbt <cmd> --profiles-dir .   (from dbt_project/)
+hospital_intelligence:
+  target: "{{ env_var('HI_DBT_TARGET', 'postgres') }}"
+  outputs:
+    postgres:
+      type: postgres
+      host: "{{ env_var('HI_PG_HOST', 'localhost') }}"
+      port: "{{ env_var('HI_PG_PORT', '5433') | int }}"
+      user: "{{ env_var('HI_PG_USER', 'hi_admin') }}"
+      password: "{{ env_var('HI_PG_PASSWORD', '') }}"
+      dbname: "{{ env_var('HI_PG_DB', 'hospital_intel') }}"
+      schema: analytics
+      threads: 4
+
+    # OPTIONAL, NOT VALIDATED IN THIS REPOSITORY: requires credentialed MIMIC-IV
+    # access on BigQuery (physionet-data) and `pip install -e .[bigquery]`.
+    # Sources would point at the physionet-data project; see docs/bigquery.md.
+    bigquery:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('HI_BQ_PROJECT', 'set-HI_BQ_PROJECT') }}"
+      dataset: "{{ env_var('HI_BQ_DATASET', 'hospital_intel') }}"
+      location: US
+      threads: 4

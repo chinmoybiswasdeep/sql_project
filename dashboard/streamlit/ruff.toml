@@ -1,0 +1,6 @@
+# Inherit the project settings; the dashboard's sibling modules are imported top-level
+# (Streamlit puts the script directory on sys.path), so tell isort they are first-party.
+extend = "../../pyproject.toml"
+
+[lint.isort]
+known-first-party = ["config", "analytics", "charts", "components", "data", "privacy", "theme"]

@@ -1,0 +1,51 @@
+name: hospital_intelligence
+version: "0.1.0"
+config-version: 2
+profile: hospital_intelligence
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # 30-day all-cause readmission window (days)
+  readmission_window_days: 30
+  # Grace period after ICU outtime within which a death is attributed to the ICU stay
+  icu_death_grace_hours: 6
+  # Minimum patients per aggregate cell in reporting outputs
+  min_cell_size: 5
+
+models:
+  hospital_intelligence:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+    marts:
+      core:
+        +schema: marts
+        +materialized: table
+      reporting:
+        +schema: reporting
+        +materialized: view
+
+seeds:
+  hospital_intelligence:
+    +schema: reference
+    icd_chapters:
+      +column_types:
+        icd_version: smallint
+        range_start: varchar(3)
+        range_end: varchar(3)
+    care_unit_types:
+      +column_types:
+        is_icu: boolean
+    admission_type_groups:
+      +column_types:
+        is_planned: boolean
+        is_observation: boolean

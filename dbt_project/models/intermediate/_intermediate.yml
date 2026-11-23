@@ -1,0 +1,137 @@
+version: 2
+
+models:
+  - name: int_admissions_enriched
+    description: "**Grain: hadm_id.** Admissions + demographics, derived age, admission grouping, sequence."
+    columns:
+      - name: hadm_id
+        data_tests: [unique, not_null]
+      - name: admission_group
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['Emergency', 'Urgent', 'Elective', 'Observation']}
+              config: {severity: warn}
+
+  - name: int_readmission_pairs
+    description: "**Grain: hadm_id as potential index discharge.** See model header for the full method."
+    columns:
+      - name: index_hadm_id
+        data_tests: [unique, not_null]
+
+  - name: int_diagnoses_categorized
+    description: "**Grain: (hadm_id, seq_num).** ICD-9/10 diagnoses with harmonised chapter."
+    data_tests:
+      - unique_combination:
+          arguments: {columns: ['hadm_id', 'seq_num']}
+
+  - name: int_charlson_comorbidity
+    description: "**Grain: hadm_id.** Charlson flags and score (Quan 2005 ICD algorithm)."
+    columns:
+      - name: hadm_id
+        data_tests: [unique, not_null]
+
+  - name: int_icu_stays_enriched
+    description: "**Grain: stay_id.**"
+    columns:
+      - name: stay_id
+        data_tests: [unique, not_null]
+
+  - name: int_transfers_sequenced
+    description: "**Grain: transfer_id** (admission-linked movements, discharge events removed)."
+    columns:
+      - name: transfer_id
+        data_tests: [unique, not_null]
+    data_tests:
+      - unique_combination:
+          arguments: {columns: ['hadm_id', 'movement_seq']}
+
+unit_tests:
+  - name: readmission_edge_cases
+    description: >
+      Synthetic admissions covering every difficult case in the readmission
+      definition. No real patient data is used.
+    model: int_readmission_pairs
+    given:
+      - input: ref('int_admissions_enriched')
+        rows:
+          # S1: only one admission -> eligible, not readmitted, last observed
+          - {hadm_id: 101, subject_id: 1, admittime: "2150-01-01 08:00:00", dischtime: "2150-01-04 12:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          # S2: readmitted after 10 days
+          - {hadm_id: 201, subject_id: 2, admittime: "2150-01-01 08:00:00", dischtime: "2150-01-05 08:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          - {hadm_id: 202, subject_id: 2, admittime: "2150-01-15 08:00:00", dischtime: "2150-01-18 08:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: URGENT, is_planned: false, is_observation: false}
+          # S3: readmitted 8 hours after discharge (within 24h)
+          - {hadm_id: 301, subject_id: 3, admittime: "2150-01-01 08:00:00", dischtime: "2150-01-05 10:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          - {hadm_id: 302, subject_id: 3, admittime: "2150-01-05 18:00:00", dischtime: "2150-01-07 10:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          # S4: exactly 30.0 days (inclusive boundary), then a 30-day+1-minute gap
+          - {hadm_id: 401, subject_id: 4, admittime: "2149-12-28 00:00:00", dischtime: "2150-01-01 00:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          - {hadm_id: 402, subject_id: 4, admittime: "2150-01-31 00:00:00", dischtime: "2150-02-01 00:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          - {hadm_id: 403, subject_id: 4, admittime: "2150-03-03 00:01:00", dischtime: "2150-03-05 00:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          # S5: in-hospital death -> excluded
+          - {hadm_id: 501, subject_id: 5, admittime: "2150-01-01 08:00:00", dischtime: "2150-01-03 08:00:00", discharge_location: DIED, died_in_hospital: true, admission_type: EW EMER., is_planned: false, is_observation: false}
+          # S6: next admission starts before this discharge -> excluded (overlap)
+          - {hadm_id: 601, subject_id: 6, admittime: "2150-01-01 08:00:00", dischtime: "2150-01-10 08:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          - {hadm_id: 602, subject_id: 6, admittime: "2150-01-05 08:00:00", dischtime: "2150-01-12 08:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          # S7: missing discharge timestamp -> excluded
+          - {hadm_id: 701, subject_id: 7, admittime: "2150-01-01 08:00:00", dischtime: null, discharge_location: null, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          # S8: planned (elective) readmission -> all-cause yes, unplanned no
+          - {hadm_id: 801, subject_id: 8, admittime: "2150-01-01 08:00:00", dischtime: "2150-01-05 08:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          - {hadm_id: 802, subject_id: 8, admittime: "2150-01-10 08:00:00", dischtime: "2150-01-11 08:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: ELECTIVE, is_planned: true, is_observation: false}
+          # S9: left against medical advice -> excluded even though readmitted
+          - {hadm_id: 901, subject_id: 9, admittime: "2150-01-01 08:00:00", dischtime: "2150-01-02 08:00:00", discharge_location: AGAINST ADVICE, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+          - {hadm_id: 902, subject_id: 9, admittime: "2150-01-04 08:00:00", dischtime: "2150-01-06 08:00:00", discharge_location: HOME, died_in_hospital: false, admission_type: EW EMER., is_planned: false, is_observation: false}
+    expect:
+      rows:
+        - {index_hadm_id: 101, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 201, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: false, is_readmitted_30d: true, is_unplanned_readmitted_30d: true, is_readmitted_within_24h: false}
+        - {index_hadm_id: 202, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 301, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: false, is_readmitted_30d: true, is_unplanned_readmitted_30d: true, is_readmitted_within_24h: true}
+        - {index_hadm_id: 302, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 401, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: false, is_readmitted_30d: true, is_unplanned_readmitted_30d: true, is_readmitted_within_24h: false}
+        - {index_hadm_id: 402, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: false, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 403, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 501, exclusion_reason: died_in_hospital, is_eligible_index: false, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 601, exclusion_reason: overlapping_next_admission, is_eligible_index: false, is_last_observed_admission: false, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 602, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 701, exclusion_reason: missing_dischtime, is_eligible_index: false, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 801, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: false, is_readmitted_30d: true, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 802, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 901, exclusion_reason: left_against_medical_advice, is_eligible_index: false, is_last_observed_admission: false, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+        - {index_hadm_id: 902, exclusion_reason: null, is_eligible_index: true, is_last_observed_admission: true, is_readmitted_30d: false, is_unplanned_readmitted_30d: false, is_readmitted_within_24h: false}
+
+  - name: charlson_hierarchy_and_versions
+    description: >
+      Severe forms supersede mild forms; ICD-9 and ICD-10 codes for the same
+      condition score identically. Synthetic codes only.
+    model: int_charlson_comorbidity
+    given:
+      - input: ref('stg_diagnoses_icd')
+        rows:
+          # A: ICD-10 type 2 diabetes w/o (E119) + with complications (E112) + metastatic (C787) + lung ca (C349)
+          - {hadm_id: 1, icd_version: 10, icd_code: E119}
+          - {hadm_id: 1, icd_version: 10, icd_code: E112}
+          - {hadm_id: 1, icd_version: 10, icd_code: C787}
+          - {hadm_id: 1, icd_version: 10, icd_code: C349}
+          # B: the ICD-9 equivalents (25000, 25040, 1977, 1629)
+          - {hadm_id: 2, icd_version: 9, icd_code: "25000"}
+          - {hadm_id: 2, icd_version: 9, icd_code: "25040"}
+          - {hadm_id: 2, icd_version: 9, icd_code: "1977"}
+          - {hadm_id: 2, icd_version: 9, icd_code: "1629"}
+          # D: CHF (I509) + mild liver (K703) + severe liver (I850)
+          - {hadm_id: 4, icd_version: 10, icd_code: I509}
+          - {hadm_id: 4, icd_version: 10, icd_code: K703}
+          - {hadm_id: 4, icd_version: 10, icd_code: I850}
+      - input: ref('int_admissions_enriched')
+        rows:
+          - {hadm_id: 1, age_at_admission: 45}
+          - {hadm_id: 2, age_at_admission: 55}
+          - {hadm_id: 3, age_at_admission: 85}
+          - {hadm_id: 4, age_at_admission: 70}
+    expect:
+      rows:
+        # diabetes 2 (with cc supersedes w/o) + metastatic 6 (supersedes malignant 2) = 8
+        - {hadm_id: 1, charlson_comorbidity_score: 8, charlson_age_score: 0, has_coded_diagnoses: true}
+        - {hadm_id: 2, charlson_comorbidity_score: 8, charlson_age_score: 1, has_coded_diagnoses: true}
+        # no coded diagnoses -> score 0, flagged
+        - {hadm_id: 3, charlson_comorbidity_score: 0, charlson_age_score: 4, has_coded_diagnoses: false}
+        # CHF 1 + severe liver 3 (supersedes mild 1) = 4
+        - {hadm_id: 4, charlson_comorbidity_score: 4, charlson_age_score: 2, has_coded_diagnoses: true}

@@ -1,0 +1,868 @@
+// =============================================================================
+// Hospital Intelligence - Dashboard A - DAX measures
+// =============================================================================
+// Format: a DAX query (DEFINE ... EVALUATE). Two ways to load it:
+//   1. Power BI Desktop > DAX query view: paste the whole file, then click
+//      "Update model: Add new measure" (or "Update model with changes") above
+//      each MEASURE. Running the query (F5) returns the validation row at the
+//      bottom, which you compare against implementation_guide.md.
+//   2. Tabular Editor (2 or 3): run measures_tabular_editor.csx (generated from
+//      this file by powerbi/measures/generate_tabular_editor_script.py). It also
+//      sets display folders, format strings and descriptions.
+//
+// Conventions
+//   * Every measure sits in the '_Measures' table (created in Power Query; see
+//     power_query.m). It is preceded by an annotation line:
+//         // @folder=<display folder> @format=<format string>
+//     followed by comment lines that state the definition and denominator.
+//   * Rates are ratios (0.204) formatted as percentages. Use DIVIDE everywhere.
+//   * The "Display" sub-folders hold small-cell-aware TEXT measures for card
+//     labels and tooltips. Counts from 1 to [Min Cell Size] - 1 are shown as
+//     "<5", and rates whose numerator is a small cell are suppressed. Use them
+//     on any page that will be shared. Keep the raw measures for validation.
+//   * Boolean columns are imported as True/False (type logical).
+//
+// STATUS: written to spec against the PostgreSQL definitions, but NOT executed
+// in Power BI (no Power BI Desktop in the build environment). Validate with the
+// checklist in powerbi/documentation/implementation_guide.md.
+// =============================================================================
+DEFINE
+
+    // =========================================================================
+    // Volume
+    // =========================================================================
+
+    // @folder=Volume @format=#,0
+    // Distinct patients (fact_admissions[subject_id]) with an admission in the
+    // current filter context. SQL: count(distinct subject_id) from fact_admissions.
+    MEASURE '_Measures'[Total Patients] =
+        DISTINCTCOUNT ( fact_admissions[subject_id] )
+
+    // @folder=Volume @format=#,0
+    // Hospital admissions = rows of fact_admissions (grain hadm_id).
+    MEASURE '_Measures'[Total Admissions] =
+        COUNTROWS ( fact_admissions )
+
+    // @folder=Volume @format=0.00
+    // Admissions / distinct patients, both from fact_admissions.
+    MEASURE '_Measures'[Admissions per Patient] =
+        DIVIDE ( [Total Admissions], [Total Patients] )
+
+    // @folder=Volume @format=#,0
+    // Patients with more than one admission inside the current filter context.
+    MEASURE '_Measures'[Repeat Patients] =
+        COUNTROWS (
+            FILTER (
+                VALUES ( fact_admissions[subject_id] ),
+                CALCULATE ( COUNTROWS ( fact_admissions ) ) > 1
+            )
+        )
+
+    // @folder=Volume @format=0.0%
+    // Repeat Patients / Total Patients.
+    MEASURE '_Measures'[Repeat Patient %] =
+        DIVIDE ( [Repeat Patients], [Total Patients] )
+
+    // @folder=Volume @format=0.0%
+    // Share of admissions whose admission_group is Emergency. Denominator: all
+    // admissions in context.
+    MEASURE '_Measures'[Emergency Admission %] =
+        DIVIDE (
+            CALCULATE ( [Total Admissions], fact_admissions[admission_group] = "Emergency" ),
+            [Total Admissions]
+        )
+
+    // @folder=Volume @format=0.0%
+    // Share of admissions with an emergency department visit (had_ed_visit).
+    MEASURE '_Measures'[ED Visit %] =
+        DIVIDE (
+            CALCULATE ( [Total Admissions], fact_admissions[had_ed_visit] = TRUE () ),
+            [Total Admissions]
+        )
+
+    // @folder=Volume\Display @format=
+    // Small-cell-aware label for Total Patients ("<5" when 1-4).
+    MEASURE '_Measures'[Total Patients (display)] =
+        VAR n = [Total Patients]
+        RETURN
+            IF ( n > 0 && n < [Min Cell Size], "<" & [Min Cell Size], FORMAT ( n, "#,0" ) )
+
+    // @folder=Volume\Display @format=
+    // Small-cell-aware label for Total Admissions ("<5" when 1-4).
+    MEASURE '_Measures'[Total Admissions (display)] =
+        VAR n = [Total Admissions]
+        RETURN
+            IF ( n > 0 && n < [Min Cell Size], "<" & [Min Cell Size], FORMAT ( n, "#,0" ) )
+
+    // =========================================================================
+    // LOS (hospital length of stay, fact_admissions[los_days])
+    // =========================================================================
+
+    // @folder=LOS @format=0.00
+    // Median of los_days = PERCENTILE.INC(0.5). SQL: percentile_cont(0.5).
+    MEASURE '_Measures'[Median LOS (days)] =
+        PERCENTILE.INC ( fact_admissions[los_days], 0.5 )
+
+    // @folder=LOS @format=0.00
+    // Arithmetic mean of los_days (skewed by long stays; prefer the median).
+    MEASURE '_Measures'[Mean LOS (days)] =
+        AVERAGE ( fact_admissions[los_days] )
+
+    // @folder=LOS @format=0.00
+    // 25th percentile of los_days (PERCENTILE.INC = percentile_cont).
+    MEASURE '_Measures'[LOS P25 (days)] =
+        PERCENTILE.INC ( fact_admissions[los_days], 0.25 )
+
+    // @folder=LOS @format=0.00
+    // 75th percentile of los_days.
+    MEASURE '_Measures'[LOS P75 (days)] =
+        PERCENTILE.INC ( fact_admissions[los_days], 0.75 )
+
+    // @folder=LOS @format=0.00
+    // 90th percentile of los_days.
+    MEASURE '_Measures'[LOS P90 (days)] =
+        PERCENTILE.INC ( fact_admissions[los_days], 0.90 )
+
+    // @folder=LOS @format=0.00
+    // Interquartile range of los_days = P75 - P25.
+    MEASURE '_Measures'[LOS IQR (days)] =
+        [LOS P75 (days)] - [LOS P25 (days)]
+
+    // @folder=LOS @format=#,0.0
+    // Sum of los_days: total bed-days consumed (resource proxy).
+    MEASURE '_Measures'[Total Bed Days] =
+        SUM ( fact_admissions[los_days] )
+
+    // @folder=LOS @format=0.0%
+    // Share of admissions with los_days >= 14 (the "14+ days" band).
+    MEASURE '_Measures'[Long Stay % (14+ days)] =
+        DIVIDE (
+            CALCULATE ( [Total Admissions], fact_admissions[los_days] >= 14 ),
+            [Total Admissions]
+        )
+
+    // @folder=LOS @format=0.0%
+    // Share of admissions with los_days < 1 (the "<1 day" band).
+    MEASURE '_Measures'[Short Stay % (<1 day)] =
+        DIVIDE (
+            CALCULATE ( [Total Admissions], fact_admissions[los_days] < 1 ),
+            [Total Admissions]
+        )
+
+    // =========================================================================
+    // ICU
+    // =========================================================================
+
+    // @folder=ICU @format=#,0
+    // Admissions with at least one ICU stay (fact_admissions[had_icu_stay]).
+    MEASURE '_Measures'[ICU Admissions] =
+        CALCULATE ( [Total Admissions], fact_admissions[had_icu_stay] = TRUE () )
+
+    // @folder=ICU @format=0.0%
+    // ICU Admissions / Total Admissions. Denominator: all admissions in context.
+    MEASURE '_Measures'[ICU Admission %] =
+        DIVIDE ( [ICU Admissions], [Total Admissions] )
+
+    // @folder=ICU @format=#,0
+    // ICU stays = rows of fact_icu_stays (grain stay_id). One admission can have
+    // several stays, so ICU Stays >= ICU Admissions.
+    MEASURE '_Measures'[ICU Stays] =
+        COUNTROWS ( fact_icu_stays )
+
+    // @folder=ICU @format=#,0
+    // Distinct patients with an ICU stay (fact_icu_stays[subject_id]).
+    MEASURE '_Measures'[ICU Patients] =
+        DISTINCTCOUNT ( fact_icu_stays[subject_id] )
+
+    // @folder=ICU @format=0.00
+    // ICU stays / ICU admissions.
+    MEASURE '_Measures'[ICU Stays per ICU Admission] =
+        DIVIDE ( [ICU Stays], [ICU Admissions] )
+
+    // @folder=ICU @format=#,0.0
+    // Sum of fact_icu_stays[icu_los_days]: ICU days consumed (utilisation, NOT
+    // occupancy; there is no bed-capacity data).
+    MEASURE '_Measures'[Total ICU Days] =
+        SUM ( fact_icu_stays[icu_los_days] )
+
+    // @folder=ICU @format=0.0%
+    // Share of all ICU days in the current context, e.g. per first care unit.
+    // Denominator: ICU days with care-unit filters removed.
+    MEASURE '_Measures'[ICU Days Share] =
+        DIVIDE (
+            [Total ICU Days],
+            CALCULATE (
+                [Total ICU Days],
+                REMOVEFILTERS ( dim_care_unit ),
+                REMOVEFILTERS ( fact_icu_stays[first_careunit] )
+            )
+        )
+
+    // @folder=ICU @format=0.00
+    // Median ICU length of stay in days per ICU stay (PERCENTILE.INC 0.5).
+    MEASURE '_Measures'[Median ICU LOS (days)] =
+        PERCENTILE.INC ( fact_icu_stays[icu_los_days], 0.5 )
+
+    // @folder=ICU @format=0.00
+    // Mean ICU length of stay in days per ICU stay.
+    MEASURE '_Measures'[Mean ICU LOS (days)] =
+        AVERAGE ( fact_icu_stays[icu_los_days] )
+
+    // @folder=ICU @format=0.0%
+    // Share of ICU stays that moved to a different ICU unit (changed_icu_unit).
+    MEASURE '_Measures'[ICU Unit Change %] =
+        DIVIDE (
+            CALCULATE ( [ICU Stays], fact_icu_stays[changed_icu_unit] = TRUE () ),
+            [ICU Stays]
+        )
+
+    // @folder=ICU @format=#,0
+    // ICU stays that are a second or later stay within the same admission.
+    MEASURE '_Measures'[Repeat ICU Stays (same admission)] =
+        CALCULATE ( [ICU Stays], fact_icu_stays[is_repeat_icu_stay_same_admission] = TRUE () )
+
+    // @folder=ICU @format=0.0
+    // Median hours from hospital admission to ICU intime, per ICU stay.
+    MEASURE '_Measures'[Median Hours Admit to ICU] =
+        PERCENTILE.INC ( fact_icu_stays[hours_from_admit_to_icu], 0.5 )
+
+    // @folder=ICU @format=#,0
+    // Care-unit movements = rows of fact_care_transfers (grain transfer_id).
+    MEASURE '_Measures'[Care Unit Movements] =
+        COUNTROWS ( fact_care_transfers )
+
+    // @folder=ICU @format=#,0
+    // Movements into a different unit than the previous one (is_unit_change).
+    // Equals SUM(fact_admissions[n_unit_changes]) when unfiltered.
+    MEASURE '_Measures'[Unit Changes] =
+        CALCULATE ( [Care Unit Movements], fact_care_transfers[is_unit_change] = TRUE () )
+
+    // @folder=ICU @format=0.00
+    // Unit changes / admissions. Denominator: all admissions in context.
+    MEASURE '_Measures'[Unit Changes per Admission] =
+        DIVIDE ( [Unit Changes], [Total Admissions] )
+
+    // @folder=ICU @format=#,0
+    // Hours spent in care units (sum of fact_care_transfers[unit_hours]).
+    MEASURE '_Measures'[Care Unit Hours] =
+        SUM ( fact_care_transfers[unit_hours] )
+
+    // @folder=ICU @format=0.00
+    // Resource proxy: procedures (ICD) per admission = SUM(n_procedures) / admissions.
+    MEASURE '_Measures'[Procedures per Admission] =
+        DIVIDE ( SUM ( fact_admissions[n_procedures] ), [Total Admissions] )
+
+    // =========================================================================
+    // Outcomes (mortality)
+    // =========================================================================
+
+    // @folder=Outcomes @format=#,0
+    // Admissions ending in in-hospital death (died_in_hospital).
+    MEASURE '_Measures'[Hospital Deaths] =
+        CALCULATE ( [Total Admissions], fact_admissions[died_in_hospital] = TRUE () )
+
+    // @folder=Outcomes @format=0.0%
+    // Hospital Deaths / Total Admissions. Denominator: all admissions in context.
+    MEASURE '_Measures'[Hospital Mortality %] =
+        DIVIDE ( [Hospital Deaths], [Total Admissions] )
+
+    // @folder=Outcomes @format=0.0%
+    // Wilson score 95% CI lower bound for Hospital Mortality %
+    // (x = Hospital Deaths, n = Total Admissions, z = 1.959964).
+    MEASURE '_Measures'[Hospital Mortality % CI Lower] =
+        VAR x = [Hospital Deaths]
+        VAR n = [Total Admissions]
+        VAR z = 1.959964
+        VAR p = DIVIDE ( x, n )
+        VAR d = 1 + DIVIDE ( z ^ 2, n )
+        VAR centre = DIVIDE ( p + DIVIDE ( z ^ 2, 2 * n ), d )
+        VAR half = DIVIDE ( z * SQRT ( DIVIDE ( p * ( 1 - p ), n ) + DIVIDE ( z ^ 2, 4 * n ^ 2 ) ), d )
+        RETURN
+            IF ( n > 0, MAX ( 0, centre - half ) )
+
+    // @folder=Outcomes @format=0.0%
+    // Wilson score 95% CI upper bound for Hospital Mortality %.
+    MEASURE '_Measures'[Hospital Mortality % CI Upper] =
+        VAR x = [Hospital Deaths]
+        VAR n = [Total Admissions]
+        VAR z = 1.959964
+        VAR p = DIVIDE ( x, n )
+        VAR d = 1 + DIVIDE ( z ^ 2, n )
+        VAR centre = DIVIDE ( p + DIVIDE ( z ^ 2, 2 * n ), d )
+        VAR half = DIVIDE ( z * SQRT ( DIVIDE ( p * ( 1 - p ), n ) + DIVIDE ( z ^ 2, 4 * n ^ 2 ) ), d )
+        RETURN
+            IF ( n > 0, MIN ( 1, centre + half ) )
+
+    // @folder=Outcomes @format=#,0
+    // ICU stays with death in the ICU (fact_icu_stays[died_in_icu]; death between
+    // intime and outtime + 6 h grace).
+    MEASURE '_Measures'[ICU Deaths] =
+        CALCULATE ( [ICU Stays], fact_icu_stays[died_in_icu] = TRUE () )
+
+    // @folder=Outcomes @format=0.0%
+    // ICU Deaths / ICU Stays. Denominator: ICU stays (not admissions).
+    MEASURE '_Measures'[ICU Mortality %] =
+        DIVIDE ( [ICU Deaths], [ICU Stays] )
+
+    // @folder=Outcomes @format=0.0%
+    // Wilson score 95% CI lower bound for ICU Mortality % (x = ICU Deaths,
+    // n = ICU Stays).
+    MEASURE '_Measures'[ICU Mortality % CI Lower] =
+        VAR x = [ICU Deaths]
+        VAR n = [ICU Stays]
+        VAR z = 1.959964
+        VAR p = DIVIDE ( x, n )
+        VAR d = 1 + DIVIDE ( z ^ 2, n )
+        VAR centre = DIVIDE ( p + DIVIDE ( z ^ 2, 2 * n ), d )
+        VAR half = DIVIDE ( z * SQRT ( DIVIDE ( p * ( 1 - p ), n ) + DIVIDE ( z ^ 2, 4 * n ^ 2 ) ), d )
+        RETURN
+            IF ( n > 0, MAX ( 0, centre - half ) )
+
+    // @folder=Outcomes @format=0.0%
+    // Wilson score 95% CI upper bound for ICU Mortality %.
+    MEASURE '_Measures'[ICU Mortality % CI Upper] =
+        VAR x = [ICU Deaths]
+        VAR n = [ICU Stays]
+        VAR z = 1.959964
+        VAR p = DIVIDE ( x, n )
+        VAR d = 1 + DIVIDE ( z ^ 2, n )
+        VAR centre = DIVIDE ( p + DIVIDE ( z ^ 2, 2 * n ), d )
+        VAR half = DIVIDE ( z * SQRT ( DIVIDE ( p * ( 1 - p ), n ) + DIVIDE ( z ^ 2, 4 * n ^ 2 ) ), d )
+        RETURN
+            IF ( n > 0, MIN ( 1, centre + half ) )
+
+    // @folder=Outcomes @format=0.00
+    // Mean Charlson comorbidity score (Quan 2005, no age points) per admission.
+    MEASURE '_Measures'[Mean Charlson Score] =
+        AVERAGE ( fact_admissions[charlson_comorbidity_score] )
+
+    // @folder=Outcomes\Display @format=
+    // Small-cell-aware label for Hospital Deaths.
+    MEASURE '_Measures'[Hospital Deaths (display)] =
+        VAR n = [Hospital Deaths]
+        RETURN
+            IF ( n > 0 && n < [Min Cell Size], "<" & [Min Cell Size], FORMAT ( n, "#,0" ) )
+
+    // @folder=Outcomes\Display @format=
+    // Hospital Mortality % as text, suppressed when deaths are a small cell
+    // (1 to Min Cell Size - 1) or the admission denominator is below Min Cell Size.
+    MEASURE '_Measures'[Hospital Mortality % (display)] =
+        VAR x = [Hospital Deaths]
+        VAR n = [Total Admissions]
+        RETURN
+            SWITCH (
+                TRUE (),
+                ISBLANK ( n ), BLANK (),
+                ( x > 0 && x < [Min Cell Size] ) || n < [Min Cell Size], "Suppressed (n<" & [Min Cell Size] & ")",
+                FORMAT ( [Hospital Mortality %], "0.0%" )
+            )
+
+    // =========================================================================
+    // Readmission (fact_readmissions; denominator = eligible index admissions)
+    // =========================================================================
+
+    // @folder=Readmission @format=#,0
+    // Index admissions eligible for the 30-day readmission denominator
+    // (fact_readmissions[is_eligible_index]). Excludes in-hospital deaths,
+    // transfers to acute care, AMA discharges, missing dischtime, overlaps.
+    MEASURE '_Measures'[Eligible Index Admissions] =
+        CALCULATE ( COUNTROWS ( fact_readmissions ), fact_readmissions[is_eligible_index] = TRUE () )
+
+    // @folder=Readmission @format=#,0
+    // Potential index admissions excluded from the denominator (exclusion_reason set).
+    MEASURE '_Measures'[Excluded Index Admissions] =
+        CALCULATE ( COUNTROWS ( fact_readmissions ), fact_readmissions[is_eligible_index] = FALSE () )
+
+    // @folder=Readmission @format=#,0
+    // Eligible index admissions followed by any admission within 30 days of
+    // discharge (is_readmitted_30d; true only on eligible rows).
+    MEASURE '_Measures'[Readmissions 30d] =
+        CALCULATE ( COUNTROWS ( fact_readmissions ), fact_readmissions[is_readmitted_30d] = TRUE () )
+
+    // @folder=Readmission @format=0.0%
+    // Readmissions 30d / Eligible Index Admissions. NOT divided by all admissions.
+    MEASURE '_Measures'[Readmission 30d %] =
+        DIVIDE ( [Readmissions 30d], [Eligible Index Admissions] )
+
+    // @folder=Readmission @format=0.0%
+    // Wilson score 95% CI lower bound for Readmission 30d %
+    // (x = Readmissions 30d, n = Eligible Index Admissions, z = 1.959964).
+    MEASURE '_Measures'[Readmission 30d % CI Lower] =
+        VAR x = [Readmissions 30d]
+        VAR n = [Eligible Index Admissions]
+        VAR z = 1.959964
+        VAR p = DIVIDE ( x, n )
+        VAR d = 1 + DIVIDE ( z ^ 2, n )
+        VAR centre = DIVIDE ( p + DIVIDE ( z ^ 2, 2 * n ), d )
+        VAR half = DIVIDE ( z * SQRT ( DIVIDE ( p * ( 1 - p ), n ) + DIVIDE ( z ^ 2, 4 * n ^ 2 ) ), d )
+        RETURN
+            IF ( n > 0, MAX ( 0, centre - half ) )
+
+    // @folder=Readmission @format=0.0%
+    // Wilson score 95% CI upper bound for Readmission 30d %.
+    MEASURE '_Measures'[Readmission 30d % CI Upper] =
+        VAR x = [Readmissions 30d]
+        VAR n = [Eligible Index Admissions]
+        VAR z = 1.959964
+        VAR p = DIVIDE ( x, n )
+        VAR d = 1 + DIVIDE ( z ^ 2, n )
+        VAR centre = DIVIDE ( p + DIVIDE ( z ^ 2, 2 * n ), d )
+        VAR half = DIVIDE ( z * SQRT ( DIVIDE ( p * ( 1 - p ), n ) + DIVIDE ( z ^ 2, 4 * n ^ 2 ) ), d )
+        RETURN
+            IF ( n > 0, MIN ( 1, centre + half ) )
+
+    // @folder=Readmission @format=#,0
+    // Eligible index admissions followed within 30 days by an UNPLANNED
+    // (non-elective) admission (is_unplanned_readmitted_30d).
+    MEASURE '_Measures'[Unplanned Readmissions 30d] =
+        CALCULATE (
+            COUNTROWS ( fact_readmissions ),
+            fact_readmissions[is_unplanned_readmitted_30d] = TRUE ()
+        )
+
+    // @folder=Readmission @format=0.0%
+    // Unplanned Readmissions 30d / Eligible Index Admissions.
+    MEASURE '_Measures'[Unplanned Readmission 30d %] =
+        DIVIDE ( [Unplanned Readmissions 30d], [Eligible Index Admissions] )
+
+    // @folder=Readmission @format=0.0%
+    // Wilson score 95% CI lower bound for Unplanned Readmission 30d %.
+    MEASURE '_Measures'[Unplanned Readmission 30d % CI Lower] =
+        VAR x = [Unplanned Readmissions 30d]
+        VAR n = [Eligible Index Admissions]
+        VAR z = 1.959964
+        VAR p = DIVIDE ( x, n )
+        VAR d = 1 + DIVIDE ( z ^ 2, n )
+        VAR centre = DIVIDE ( p + DIVIDE ( z ^ 2, 2 * n ), d )
+        VAR half = DIVIDE ( z * SQRT ( DIVIDE ( p * ( 1 - p ), n ) + DIVIDE ( z ^ 2, 4 * n ^ 2 ) ), d )
+        RETURN
+            IF ( n > 0, MAX ( 0, centre - half ) )
+
+    // @folder=Readmission @format=0.0%
+    // Wilson score 95% CI upper bound for Unplanned Readmission 30d %.
+    MEASURE '_Measures'[Unplanned Readmission 30d % CI Upper] =
+        VAR x = [Unplanned Readmissions 30d]
+        VAR n = [Eligible Index Admissions]
+        VAR z = 1.959964
+        VAR p = DIVIDE ( x, n )
+        VAR d = 1 + DIVIDE ( z ^ 2, n )
+        VAR centre = DIVIDE ( p + DIVIDE ( z ^ 2, 2 * n ), d )
+        VAR half = DIVIDE ( z * SQRT ( DIVIDE ( p * ( 1 - p ), n ) + DIVIDE ( z ^ 2, 4 * n ^ 2 ) ), d )
+        RETURN
+            IF ( n > 0, MIN ( 1, centre + half ) )
+
+    // @folder=Readmission @format=#,0
+    // Eligible index admissions readmitted within 24 hours of discharge.
+    MEASURE '_Measures'[Readmissions within 24h] =
+        CALCULATE (
+            COUNTROWS ( fact_readmissions ),
+            fact_readmissions[is_readmitted_within_24h] = TRUE ()
+        )
+
+    // @folder=Readmission @format=0.0
+    // Median days from index discharge to the next admission, over 30-day
+    // readmissions only.
+    MEASURE '_Measures'[Median Days to Readmission] =
+        CALCULATE (
+            PERCENTILE.INC ( fact_readmissions[days_to_next_admission], 0.5 ),
+            fact_readmissions[is_readmitted_30d] = TRUE ()
+        )
+
+    // @folder=Readmission\Display @format=
+    // Small-cell-aware label for Readmissions 30d.
+    MEASURE '_Measures'[Readmissions 30d (display)] =
+        VAR n = [Readmissions 30d]
+        RETURN
+            IF ( n > 0 && n < [Min Cell Size], "<" & [Min Cell Size], FORMAT ( n, "#,0" ) )
+
+    // @folder=Readmission\Display @format=
+    // Small-cell-aware label for Readmissions within 24h.
+    MEASURE '_Measures'[Readmissions within 24h (display)] =
+        VAR n = [Readmissions within 24h]
+        RETURN
+            IF ( n > 0 && n < [Min Cell Size], "<" & [Min Cell Size], FORMAT ( n, "#,0" ) )
+
+    // @folder=Readmission\Display @format=
+    // Small-cell-aware label for Excluded Index Admissions (e.g. per exclusion_reason).
+    MEASURE '_Measures'[Excluded Index Admissions (display)] =
+        VAR n = [Excluded Index Admissions]
+        RETURN
+            IF ( n > 0 && n < [Min Cell Size], "<" & [Min Cell Size], FORMAT ( n, "#,0" ) )
+
+    // @folder=Readmission\Display @format=
+    // Readmission 30d % as text, suppressed when the numerator is a small cell or
+    // the eligible denominator is below Min Cell Size.
+    MEASURE '_Measures'[Readmission 30d % (display)] =
+        VAR x = [Readmissions 30d]
+        VAR n = [Eligible Index Admissions]
+        RETURN
+            SWITCH (
+                TRUE (),
+                ISBLANK ( n ), BLANK (),
+                ( x > 0 && x < [Min Cell Size] ) || n < [Min Cell Size], "Suppressed (n<" & [Min Cell Size] & ")",
+                FORMAT ( [Readmission 30d %], "0.0%" )
+            )
+
+    // @folder=Readmission\Display @format=
+    // Tooltip text: "20.4% (95% CI 15.9%-25.8%), 52/255", suppressed for small cells.
+    MEASURE '_Measures'[Readmission 30d % with CI (display)] =
+        VAR x = [Readmissions 30d]
+        VAR n = [Eligible Index Admissions]
+        RETURN
+            SWITCH (
+                TRUE (),
+                ISBLANK ( n ), BLANK (),
+                ( x > 0 && x < [Min Cell Size] ) || n < [Min Cell Size], "Suppressed (n<" & [Min Cell Size] & ")",
+                FORMAT ( [Readmission 30d %], "0.0%" ) & " (95% CI "
+                    & FORMAT ( [Readmission 30d % CI Lower], "0.0%" ) & "-"
+                    & FORMAT ( [Readmission 30d % CI Upper], "0.0%" ) & "), "
+                    & FORMAT ( x, "#,0" ) & "/" & FORMAT ( n, "#,0" )
+            )
+
+    // =========================================================================
+    // Clinical (diagnoses, labs, medications)
+    // =========================================================================
+
+    // @folder=Clinical @format=#,0
+    // Billed diagnoses = rows of fact_diagnoses (grain hadm_id, seq_num).
+    MEASURE '_Measures'[Diagnoses] =
+        COUNTROWS ( fact_diagnoses )
+
+    // @folder=Clinical @format=0.0
+    // Diagnoses / Total Admissions (all admissions in context, including any
+    // without a coded diagnosis).
+    MEASURE '_Measures'[Diagnoses per Admission] =
+        DIVIDE ( [Diagnoses], [Total Admissions] )
+
+    // @folder=Clinical @format=#,0
+    // Admissions with at least one diagnosis in the current context (e.g. per
+    // diagnosis category).
+    MEASURE '_Measures'[Admissions with Diagnosis] =
+        DISTINCTCOUNT ( fact_diagnoses[hadm_id] )
+
+    // @folder=Clinical @format=0.0%
+    // Admissions with Diagnosis / all admissions in context. Because dim_diagnosis
+    // does not filter fact_admissions, the denominator stays all admissions.
+    MEASURE '_Measures'[% Admissions with Diagnosis] =
+        DIVIDE ( [Admissions with Diagnosis], [Total Admissions] )
+
+    // @folder=Clinical @format=#,0
+    // Distinct ICD codes (version-qualified diagnosis_key) used in fact_diagnoses.
+    MEASURE '_Measures'[Distinct ICD Codes] =
+        DISTINCTCOUNT ( fact_diagnoses[diagnosis_key] )
+
+    // @folder=Clinical @format=#,0
+    // All lab measurements (rows of fact_lab_events), inpatient AND outpatient.
+    // Any filter from dim_patient / fact_admissions drops outpatient rows
+    // (hadm_id blank), so use Admission-Linked Lab Events for per-admission work.
+    MEASURE '_Measures'[Lab Events] =
+        COUNTROWS ( fact_lab_events )
+
+    // @folder=Clinical @format=#,0
+    // Lab measurements linked to an admission (is_admission_linked = hadm_id not null).
+    MEASURE '_Measures'[Admission-Linked Lab Events] =
+        CALCULATE ( [Lab Events], fact_lab_events[is_admission_linked] = TRUE () )
+
+    // @folder=Clinical @format=#,0.0
+    // Admission-linked lab events / Total Admissions (= mean of
+    // fact_admissions[n_lab_events]).
+    MEASURE '_Measures'[Labs per Admission] =
+        DIVIDE ( [Admission-Linked Lab Events], [Total Admissions] )
+
+    // @folder=Clinical @format=#,0
+    // Lab results flagged abnormal by the laboratory (flag_abnormal).
+    MEASURE '_Measures'[Abnormal Lab Events] =
+        CALCULATE ( [Lab Events], fact_lab_events[flag_abnormal] = TRUE () )
+
+    // @folder=Clinical @format=0.0%
+    // Abnormal Lab Events / Lab Events (all results, as in SQL query 17).
+    // An abnormal value is a measurement property, not a diagnosis.
+    MEASURE '_Measures'[Abnormal Lab %] =
+        DIVIDE ( [Abnormal Lab Events], [Lab Events] )
+
+    // @folder=Clinical @format=0.0%
+    // Results below their own reference range / range-evaluable results
+    // (range_direction not blank).
+    MEASURE '_Measures'[Low Result %] =
+        DIVIDE (
+            CALCULATE ( [Lab Events], fact_lab_events[range_direction] = "low" ),
+            CALCULATE ( [Lab Events], NOT ISBLANK ( fact_lab_events[range_direction] ) )
+        )
+
+    // @folder=Clinical @format=0.0%
+    // Results above their own reference range / range-evaluable results.
+    MEASURE '_Measures'[High Result %] =
+        DIVIDE (
+            CALCULATE ( [Lab Events], fact_lab_events[range_direction] = "high" ),
+            CALCULATE ( [Lab Events], NOT ISBLANK ( fact_lab_events[range_direction] ) )
+        )
+
+    // @folder=Clinical @format=#,0
+    // All prescription orders (rows of fact_medication_orders), including
+    // diluents/base solutions and flushes. Orders, not administrations.
+    MEASURE '_Measures'[Medication Orders (all)] =
+        COUNTROWS ( fact_medication_orders )
+
+    // @folder=Clinical @format=#,0
+    // Therapeutic orders: excludes drug_type = "BASE" and drug names containing
+    // "flush" (CONTAINSSTRING is case-insensitive; names are lower-case). Same
+    // filter as SQL query 19.
+    MEASURE '_Measures'[Therapeutic Orders] =
+        CALCULATE (
+            [Medication Orders (all)],
+            fact_medication_orders[drug_type] <> "BASE",
+            NOT CONTAINSSTRING ( fact_medication_orders[drug_name_normalized], "flush" )
+        )
+
+    // @folder=Clinical @format=#,0
+    // Distinct therapeutic drugs (medication_key) ordered.
+    MEASURE '_Measures'[Distinct Therapeutic Drugs] =
+        CALCULATE (
+            DISTINCTCOUNT ( fact_medication_orders[medication_key] ),
+            fact_medication_orders[drug_type] <> "BASE",
+            NOT CONTAINSSTRING ( fact_medication_orders[drug_name_normalized], "flush" )
+        )
+
+    // @folder=Clinical @format=#,0
+    // Admissions with at least one therapeutic order of the drug(s) in context.
+    MEASURE '_Measures'[Admissions Exposed] =
+        CALCULATE (
+            DISTINCTCOUNT ( fact_medication_orders[hadm_id] ),
+            fact_medication_orders[drug_type] <> "BASE",
+            NOT CONTAINSSTRING ( fact_medication_orders[drug_name_normalized], "flush" )
+        )
+
+    // @folder=Clinical @format=0.0%
+    // Admissions Exposed / all admissions in context (as in SQL query 19).
+    MEASURE '_Measures'[% Admissions Exposed] =
+        DIVIDE ( [Admissions Exposed], [Total Admissions] )
+
+    // @folder=Clinical @format=0.0
+    // Therapeutic orders / all admissions in context.
+    MEASURE '_Measures'[Therapeutic Orders per Admission] =
+        DIVIDE ( [Therapeutic Orders], [Total Admissions] )
+
+    // @folder=Clinical @format=0.0
+    // Median order duration (hours) of therapeutic orders, excluding orders whose
+    // stop time precedes the start time (has_inverted_times).
+    MEASURE '_Measures'[Median Order Hours] =
+        CALCULATE (
+            PERCENTILE.INC ( fact_medication_orders[order_duration_hours], 0.5 ),
+            fact_medication_orders[drug_type] <> "BASE",
+            NOT CONTAINSSTRING ( fact_medication_orders[drug_name_normalized], "flush" ),
+            fact_medication_orders[has_inverted_times] = FALSE ()
+        )
+
+    // =========================================================================
+    // Data Quality (disconnected reporting/audit tables)
+    // =========================================================================
+
+    // @folder=Data Quality @format=0
+    // Small-cell threshold used by the "(display)" measures. Matches
+    // manifest.json min_cell_size / HI_MIN_CELL_SIZE (default 5).
+    MEASURE '_Measures'[Min Cell Size] = 5
+
+    // @folder=Data Quality @format=#,0
+    // Validation checks in the latest validation run (rpt_data_quality_checks).
+    MEASURE '_Measures'[DQ Checks] =
+        COUNTROWS ( rpt_data_quality_checks )
+
+    // @folder=Data Quality @format=#,0
+    // Checks with status = "pass".
+    MEASURE '_Measures'[DQ Checks Passed] =
+        CALCULATE ( [DQ Checks], rpt_data_quality_checks[status] = "pass" )
+
+    // @folder=Data Quality @format=#,0
+    // Checks with any status other than "pass" (flagged rows found).
+    MEASURE '_Measures'[DQ Checks Flagged] =
+        CALCULATE ( [DQ Checks], rpt_data_quality_checks[status] <> "pass" )
+
+    // @folder=Data Quality @format=#,0
+    // Flagged checks with severity = "error" (these fail the pipeline).
+    MEASURE '_Measures'[DQ Error Flags] =
+        CALCULATE (
+            [DQ Checks],
+            rpt_data_quality_checks[status] <> "pass",
+            rpt_data_quality_checks[severity] = "error"
+        )
+
+    // @folder=Data Quality @format=0.0%
+    // DQ Checks Passed / DQ Checks.
+    MEASURE '_Measures'[DQ Pass Rate] =
+        DIVIDE ( [DQ Checks Passed], [DQ Checks] )
+
+    // @folder=Data Quality @format=#,0
+    // Sum of flagged_rows across checks in the latest run.
+    MEASURE '_Measures'[DQ Flagged Rows] =
+        SUM ( rpt_data_quality_checks[flagged_rows] )
+
+    // @folder=Data Quality @format=
+    // Overall status text for the DQ card: any error-severity flag = "Attention".
+    MEASURE '_Measures'[DQ Status] =
+        IF ( [DQ Error Flags] > 0, "Attention: error-severity checks failing", "Healthy: no error-severity failures" )
+
+    // @folder=Data Quality @format=#,0
+    // Source tables tracked by the ingestion pipeline (rpt_pipeline_status).
+    MEASURE '_Measures'[Tables Monitored] =
+        COUNTROWS ( rpt_pipeline_status )
+
+    // @folder=Data Quality @format=#,0
+    // Rows rejected by the loader in each table's latest run.
+    MEASURE '_Measures'[Rejected Rows] =
+        SUM ( rpt_pipeline_status[rejected_rows] )
+
+    // @folder=Data Quality @format=#,0
+    // Duplicate primary-key rows found in each table's latest run.
+    MEASURE '_Measures'[Duplicate Key Rows] =
+        SUM ( rpt_pipeline_status[duplicate_key_rows] )
+
+    // @folder=Data Quality @format=yyyy-mm-dd hh:nn "UTC"
+    // Most recent last_successful_load_at across source tables (UTC).
+    MEASURE '_Measures'[Last Successful Table Load (UTC)] =
+        MAX ( rpt_pipeline_status[last_successful_load_at] )
+
+    // @folder=Data Quality @format=yyyy-mm-dd hh:nn "UTC"
+    // finished_at of the latest ingestion run with status = "succeeded" (UTC).
+    MEASURE '_Measures'[Last Successful Ingestion (UTC)] =
+        CALCULATE ( MAX ( ingestion_runs[finished_at] ), ingestion_runs[status] = "succeeded" )
+
+    // @folder=Data Quality @format=#,0.0
+    // Hours between the last successful ingestion and now (UTCNOW at refresh /
+    // query time). Freshness indicator.
+    MEASURE '_Measures'[Hours Since Last Ingestion] =
+        VAR last = [Last Successful Ingestion (UTC)]
+        RETURN
+            IF ( NOT ISBLANK ( last ), DIVIDE ( DATEDIFF ( last, UTCNOW (), MINUTE ), 60 ) )
+
+    // @folder=Data Quality @format=
+    // Freshness label: <= 24 h "Fresh", <= 168 h "Stale (over 1 day)", else
+    // "Stale (over 7 days)". The demo extract is static, so "Stale" is expected.
+    MEASURE '_Measures'[Freshness Status] =
+        VAR h = [Hours Since Last Ingestion]
+        RETURN
+            SWITCH (
+                TRUE (),
+                ISBLANK ( h ), "No successful ingestion recorded",
+                h <= 24, "Fresh (under 24 h)",
+                h <= 168, "Stale (over 1 day)",
+                "Stale (over 7 days)"
+            )
+
+    // @folder=Data Quality @format=0.0%
+    // Mean null share over profiled source columns (rpt_missingness[null_pct] is
+    // 0-100, so divide by 100).
+    MEASURE '_Measures'[Avg Column Null %] =
+        DIVIDE ( AVERAGE ( rpt_missingness[null_pct] ), 100 )
+
+    // @folder=Data Quality @format=#,0
+    // Profiled source columns that are more than 50% null.
+    MEASURE '_Measures'[Columns Over 50% Null] =
+        CALCULATE ( COUNTROWS ( rpt_missingness ), rpt_missingness[null_pct] > 50 )
+
+    // @folder=Data Quality @format=#,0
+    // Benchmark measurements recorded (meta.query_benchmarks). 0 when empty.
+    MEASURE '_Measures'[Benchmark Runs] =
+        COALESCE ( COUNTROWS ( query_benchmarks ), 0 )
+
+    // @folder=Data Quality @format=#,0.000
+    // Median runtime (ms) of the most recent benchmark in context (latest
+    // benchmarked_at). Use with case_name and variant on the axis/legend.
+    MEASURE '_Measures'[Latest Median ms] =
+        VAR lastTs = MAX ( query_benchmarks[benchmarked_at] )
+        RETURN
+            CALCULATE ( AVERAGE ( query_benchmarks[median_ms] ), query_benchmarks[benchmarked_at] = lastTs )
+
+    // @folder=Data Quality @format=#,0.0"x"
+    // Baseline / optimized latest median runtime for the case(s) in context.
+    MEASURE '_Measures'[Benchmark Speedup] =
+        DIVIDE (
+            CALCULATE ( [Latest Median ms], query_benchmarks[variant] = "baseline" ),
+            CALCULATE ( [Latest Median ms], query_benchmarks[variant] = "optimized" )
+        )
+
+    // @folder=Data Quality @format=
+    // Card text for the benchmark panel; handles an empty benchmarks table.
+    MEASURE '_Measures'[Benchmark Status] =
+        IF (
+            [Benchmark Runs] = 0,
+            "No query benchmarks recorded yet - run the benchmark job and refresh",
+            FORMAT ( DISTINCTCOUNT ( query_benchmarks[case_name] ), "0" ) & " benchmark cases, latest "
+                & FORMAT ( MAX ( query_benchmarks[benchmarked_at] ), "yyyy-mm-dd hh:nn" ) & " UTC"
+        )
+
+    // @folder=Data Quality @format=0
+    // Number of headline KPIs where the DAX value (all filters removed) differs
+    // from the SQL value in rpt_executive_kpis, using the SQL rounding (1 dp for
+    // percentages, 2 dp for admissions per patient). 0 = DAX reproduces SQL.
+    MEASURE '_Measures'[KPI Reconciliation Mismatches] =
+        VAR pts = CALCULATE ( [Total Patients], REMOVEFILTERS () )
+        VAR adm = CALCULATE ( [Total Admissions], REMOVEFILTERS () )
+        VAR app = CALCULATE ( [Admissions per Patient], REMOVEFILTERS () )
+        VAR los = CALCULATE ( [Median LOS (days)], REMOVEFILTERS () )
+        VAR icu = CALCULATE ( [ICU Admission %], REMOVEFILTERS () )
+        VAR mort = CALCULATE ( [Hospital Mortality %], REMOVEFILTERS () )
+        VAR rden = CALCULATE ( [Eligible Index Admissions], REMOVEFILTERS () )
+        VAR rnum = CALCULATE ( [Readmissions 30d], REMOVEFILTERS () )
+        VAR rpct = CALCULATE ( [Readmission 30d %], REMOVEFILTERS () )
+        VAR upct = CALCULATE ( [Unplanned Readmission 30d %], REMOVEFILTERS () )
+        RETURN
+            IF (
+                ISEMPTY ( rpt_executive_kpis ),
+                BLANK (),
+                INT ( pts <> MAX ( rpt_executive_kpis[total_patients] ) )
+                    + INT ( adm <> MAX ( rpt_executive_kpis[total_admissions] ) )
+                    + INT ( ROUND ( app, 2 ) <> MAX ( rpt_executive_kpis[admissions_per_patient] ) )
+                    + INT ( ABS ( los - MAX ( rpt_executive_kpis[median_los_days] ) ) > 0.000001 )
+                    + INT ( ROUND ( icu * 100, 1 ) <> MAX ( rpt_executive_kpis[icu_admission_pct] ) )
+                    + INT ( ROUND ( mort * 100, 1 ) <> MAX ( rpt_executive_kpis[hospital_mortality_pct] ) )
+                    + INT ( rden <> MAX ( rpt_executive_kpis[readmission_denominator] ) )
+                    + INT ( rnum <> MAX ( rpt_executive_kpis[readmission_numerator] ) )
+                    + INT ( ROUND ( rpct * 100, 1 ) <> MAX ( rpt_executive_kpis[readmission_30d_pct] ) )
+                    + INT ( ROUND ( upct * 100, 1 ) <> MAX ( rpt_executive_kpis[unplanned_readmission_30d_pct] ) )
+            )
+
+    // @folder=Data Quality @format=
+    // Card text for the SQL-vs-DAX reconciliation (10 headline KPIs).
+    MEASURE '_Measures'[KPI Reconciliation Status] =
+        VAR m = [KPI Reconciliation Mismatches]
+        RETURN
+            SWITCH (
+                TRUE (),
+                ISBLANK ( m ), "rpt_executive_kpis not loaded",
+                m = 0, "DAX = SQL for all 10 headline KPIs",
+                FORMAT ( m, "0" ) & " of 10 headline KPIs differ from SQL - check measures"
+            )
+
+// =============================================================================
+// Validation query: run with F5 in DAX query view and compare each value with
+// the VALIDATION CHECKLIST in implementation_guide.md (no slicers applied).
+// =============================================================================
+EVALUATE
+ROW (
+    "Total Patients", [Total Patients],
+    "Total Admissions", [Total Admissions],
+    "Admissions per Patient", [Admissions per Patient],
+    "Median LOS (days)", [Median LOS (days)],
+    "Mean LOS (days)", [Mean LOS (days)],
+    "LOS P25 (days)", [LOS P25 (days)],
+    "LOS P75 (days)", [LOS P75 (days)],
+    "LOS P90 (days)", [LOS P90 (days)],
+    "ICU Admission %", [ICU Admission %],
+    "ICU Stays", [ICU Stays],
+    "ICU Mortality %", [ICU Mortality %],
+    "Hospital Mortality %", [Hospital Mortality %],
+    "Hospital Mortality % CI Lower", [Hospital Mortality % CI Lower],
+    "Hospital Mortality % CI Upper", [Hospital Mortality % CI Upper],
+    "Eligible Index Admissions", [Eligible Index Admissions],
+    "Readmissions 30d", [Readmissions 30d],
+    "Readmission 30d %", [Readmission 30d %],
+    "Readmission 30d % CI Lower", [Readmission 30d % CI Lower],
+    "Readmission 30d % CI Upper", [Readmission 30d % CI Upper],
+    "Unplanned Readmission 30d %", [Unplanned Readmission 30d %],
+    "Labs per Admission", [Labs per Admission],
+    "Abnormal Lab %", [Abnormal Lab %],
+    "Therapeutic Orders", [Therapeutic Orders],
+    "DQ Checks", [DQ Checks],
+    "DQ Pass Rate", [DQ Pass Rate],
+    "KPI Reconciliation Mismatches", [KPI Reconciliation Mismatches]
+)

@@ -1,0 +1,10 @@
+admission_type,admission_group,is_planned,is_observation,description
+EW EMER.,Emergency,false,false,Emergency admission via emergency ward
+DIRECT EMER.,Emergency,false,false,Emergency admission not via emergency ward
+URGENT,Urgent,false,false,Urgent unscheduled admission
+ELECTIVE,Elective,true,false,Scheduled elective admission
+SURGICAL SAME DAY ADMISSION,Elective,true,false,Scheduled surgery with same-day admission
+OBSERVATION ADMIT,Observation,false,true,Observation status encounter
+EU OBSERVATION,Observation,false,true,Emergency unit observation encounter
+DIRECT OBSERVATION,Observation,false,true,Direct observation encounter
+AMBULATORY OBSERVATION,Observation,false,true,Ambulatory observation encounter

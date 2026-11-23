@@ -1,0 +1,42 @@
+icd_version,range_start,range_end,chapter_code,harmonized_category
+9,001,139,9-01,Infectious & parasitic
+9,140,239,9-02,Neoplasms
+9,240,279,9-03,"Endocrine, nutritional & metabolic"
+9,280,289,9-04,Blood & immune
+9,290,319,9-05,Mental & behavioral
+9,320,389,9-06,Nervous system & sense organs
+9,390,459,9-07,Circulatory
+9,460,519,9-08,Respiratory
+9,520,579,9-09,Digestive
+9,580,629,9-10,Genitourinary
+9,630,679,9-11,Pregnancy & childbirth
+9,680,709,9-12,Skin
+9,710,739,9-13,Musculoskeletal
+9,740,759,9-14,Congenital
+9,760,779,9-15,Perinatal
+9,780,799,9-16,"Symptoms, signs & ill-defined"
+9,800,999,9-17,Injury & poisoning
+9,E00,E99,9-E,External causes
+9,V01,V91,9-V,Health status & services contact
+10,A00,B99,10-01,Infectious & parasitic
+10,C00,D49,10-02,Neoplasms
+10,D50,D89,10-03,Blood & immune
+10,E00,E89,10-04,"Endocrine, nutritional & metabolic"
+10,F01,F99,10-05,Mental & behavioral
+10,G00,G99,10-06,Nervous system & sense organs
+10,H00,H59,10-07,Nervous system & sense organs
+10,H60,H95,10-08,Nervous system & sense organs
+10,I00,I99,10-09,Circulatory
+10,J00,J99,10-10,Respiratory
+10,K00,K95,10-11,Digestive
+10,L00,L99,10-12,Skin
+10,M00,M99,10-13,Musculoskeletal
+10,N00,N99,10-14,Genitourinary
+10,O00,O9A,10-15,Pregnancy & childbirth
+10,P00,P96,10-16,Perinatal
+10,Q00,Q99,10-17,Congenital
+10,R00,R99,10-18,"Symptoms, signs & ill-defined"
+10,S00,T88,10-19,Injury & poisoning
+10,U00,U85,10-22,Special purpose codes
+10,V00,Y99,10-20,External causes
+10,Z00,Z99,10-21,Health status & services contact

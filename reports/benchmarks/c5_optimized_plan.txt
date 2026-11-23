@@ -1,0 +1,15 @@
+HashAggregate  (cost=20740.08..20742.08 rows=200 width=12) (actual time=56.830..56.869 rows=1318 loops=1)
+  Group Key: chartevents.itemid
+  Batches: 1  Memory Usage: 209kB
+  Buffers: shared hit=9035
+  ->  HashAggregate  (cost=19067.93..19736.79 rows=66886 width=8) (actual time=52.999..54.884 rows=40587 loops=1)
+        Group Key: chartevents.itemid, chartevents.stay_id
+        Batches: 1  Memory Usage: 5137kB
+        Buffers: shared hit=9035
+        ->  Seq Scan on chartevents  (cost=0.00..15723.62 rows=668862 width=8) (actual time=0.002..15.350 rows=668862 loops=1)
+              Buffers: shared hit=9035
+Settings: work_mem = '64MB'
+Planning:
+  Buffers: shared hit=1
+Planning Time: 0.036 ms
+Execution Time: 57.080 ms
